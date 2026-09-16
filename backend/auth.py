@@ -88,3 +88,21 @@ def get_optional_user(
         return db.query(User).filter(User.id == int(user_id_raw)).first()
     except Exception:
         return None
+
+
+def require_role(allowed_roles: list):
+    """Dependency factory that checks the current user's role / plan tier."""
+    from fastapi import HTTPException, status
+
+    def _checker(user: User = Depends(get_current_user)) -> User:
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        if user.plan_tier not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access requires one of: {', '.join(allowed_roles)}"
+            )
+        return user
+
+    return _checker
+
