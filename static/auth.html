@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Account — FarmGuard AI</title>
+  <link rel="stylesheet" href="/static/css/farmguard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22><text y=%2226%22 font-size=%2224%22>🌱</text></svg>">
+</head>
+<body style="min-height: 100vh; display: flex; flex-direction: column;">
+
+  <!-- Simple Header -->
+  <header style="padding: 1.25rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);">
+    <a href="/" class="logo">
+      <span class="logo-badge">🌱</span>
+      <span>FarmGuard AI</span>
+    </a>
+    <div class="flex items-center gap-3">
+      <button class="btn btn-outline btn-icon theme-toggle-btn" aria-label="Toggle theme">🌓</button>
+      <a href="/" class="btn btn-ghost btn-sm">Back to Home</a>
+    </div>
+  </header>
+
+  <!-- Auth Container -->
+  <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 2.5rem 1.25rem;">
+    <div class="card" style="max-width: 480px; width: 100%; box-shadow: var(--shadow-lg);">
+      
+      <!-- Quick Demo Access Banner -->
+      <div style="background: var(--primary-light); border: 1px solid var(--primary-glow); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+        <div style="font-size: 0.825rem; font-weight: 700; color: var(--healthy-text); margin-bottom: 0.5rem; text-transform: uppercase;">⚡ 1-Click Instant Demo Login</div>
+        <div class="flex gap-2">
+          <button id="demo-alice-btn" class="btn btn-sm btn-primary" style="flex: 1;">
+            Alice (Tomato)
+          </button>
+          <button id="demo-rajesh-btn" class="btn btn-sm btn-outline" style="flex: 1; background: var(--bg-surface);">
+            Rajesh (Cotton)
+          </button>
+        </div>
+      </div>
+
+      <!-- Mode Tabs -->
+      <div class="tabs">
+        <div id="tab-login" class="tab active" style="flex: 1; text-align: center;">Login</div>
+        <div id="tab-signup" class="tab" style="flex: 1; text-align: center;">Sign Up</div>
+      </div>
+
+      <!-- Error Alert -->
+      <div id="auth-error" style="display: none; background: var(--critical-bg); color: var(--critical-text); padding: 0.75rem 1rem; border-radius: var(--radius-md); font-size: 0.875rem; margin-bottom: 1.25rem; border: 1px solid rgba(220, 38, 38, 0.2);"></div>
+
+      <!-- LOGIN FORM -->
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="login-email">Email Address</label>
+          <input type="email" id="login-email" class="form-control" placeholder="farmer@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+          Sign In to Dashboard →
+        </button>
+      </form>
+
+      <!-- SIGNUP FORM -->
+      <form id="signup-form" style="display: none;">
+        <div class="form-group">
+          <label class="form-label" for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" class="form-control" placeholder="Ramesh Patil" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-email">Email Address</label>
+          <input type="email" id="signup-email" class="form-control" placeholder="ramesh@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-phone">Phone Number (Optional)</label>
+          <input type="tel" id="signup-phone" class="form-control" placeholder="+91 98765 43210">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-location">Farm Location (District, State)</label>
+          <input type="text" id="signup-location" class="form-control" placeholder="Nashik, Maharashtra">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-group">
+            <label class="form-label" for="signup-language">Language</label>
+            <select id="signup-language" class="form-control">
+              <option value="English">English</option>
+              <option value="Hindi">हिंदी (Hindi)</option>
+              <option value="Marathi">मराठी (Marathi)</option>
+              <option value="Telugu">తెలుగు (Telugu)</option>
+              <option value="Tamil">தமிழ் (Tamil)</option>
+              <option value="Kannada">ಕನ್ನಡ (Kannada)</option>
+              <option value="Gujarati">ગુજરાતી (Gujarati)</option>
+              <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="signup-crop">Primary Crop</label>
+            <select id="signup-crop" class="form-control">
+              <option value="Tomato">Tomato</option>
+              <option value="Potato">Potato</option>
+              <option value="Cotton">Cotton</option>
+              <option value="Rice">Rice (Paddy)</option>
+              <option value="Wheat">Wheat</option>
+              <option value="Chili">Chili / Pepper</option>
+              <option value="Maize">Maize (Corn)</option>
+              <option value="Onion">Onion</option>
+              <option value="Other">Other Crop</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-password">Password (min 6 chars)</label>
+          <input type="password" id="signup-password" class="form-control" placeholder="••••••••" minlength="6" required>
+        </div>
+
+        <button type="submit" id="signup-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+          Create Free Farmer Account →
+        </button>
+      </form>
+
+      <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+        By continuing, you agree to FarmGuard AI's 
+        <a href="/terms" style="text-decoration: underline; color: var(--primary);">Terms</a> and 
+        <a href="/privacy" style="text-decoration: underline; color: var(--primary);">Privacy Policy</a>.
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/js/farmguard.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check if user is already authenticated
+      if (FarmGuard.getToken() && FarmGuard.getUser()) {
+        window.location.href = '/dashboard';
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const isSignup = params.get('mode') === 'signup';
+
+      const tabLogin = document.getElementById('tab-login');
+      const tabSignup = document.getElementById('tab-signup');
+      const loginForm = document.getElementById('login-form');
+      const signupForm = document.getElementById('signup-form');
+      const errorBox = document.getElementById('auth-error');
+
+      function setMode(signup) {
+        if (signup) {
+          tabLogin.classList.remove('active');
+          tabSignup.classList.add('active');
+          loginForm.style.display = 'none';
+          signupForm.style.display = 'block';
+          history.replaceState(null, '', '/auth?mode=signup');
+        } else {
+          tabSignup.classList.remove('active');
+          tabLogin.classList.add('active');
+          signupForm.style.display = 'none';
+          loginForm.style.display = 'block';
+          history.replaceState(null, '', '/auth?mode=login');
+        }
+        errorBox.style.display = 'none';
+      }
+
+      setMode(isSignup);
+
+      tabLogin.addEventListener('click', () => setMode(false));
+      tabSignup.addEventListener('click', () => setMode(true));
+
+      // 1-Click Demo Login
+      async function triggerDemoLogin(role) {
+        try {
+          errorBox.style.display = 'none';
+          const res = await FarmGuard.api('/api/auth/demo-login', {
+            method: 'POST',
+            body: JSON.stringify({ role })
+          });
+          FarmGuard.setAuth(res.access_token, res.user);
+          FarmGuard.showToast(`Welcome ${res.user.name}! Redirecting...`, 'success');
+          setTimeout(() => window.location.href = '/dashboard', 600);
+        } catch (err) {
+          errorBox.innerText = err.message;
+          errorBox.style.display = 'block';
+        }
+      }
+
+      document.getElementById('demo-alice-btn').addEventListener('click', () => triggerDemoLogin('alice'));
+      document.getElementById('demo-rajesh-btn').addEventListener('click', () => triggerDemoLogin('rajesh'));
+
+      // Login Form Submit
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorBox.style.display = 'none';
+        const submitBtn = document.getElementById('login-submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Signing In...';
+
+        try {
+          const email = document.getElementById('login-email').value;
+          const password = document.getElementById('login-password').value;
+          const res = await FarmGuard.api('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+          });
+          FarmGuard.setAuth(res.access_token, res.user);
+          FarmGuard.showToast(`Welcome back, ${res.user.name}!`, 'success');
+          setTimeout(() => window.location.href = '/dashboard', 500);
+        } catch (err) {
+          errorBox.innerText = err.message;
+          errorBox.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.innerText = 'Sign In to Dashboard →';
+        }
+      });
+
+      // Signup Form Submit
+      signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorBox.style.display = 'none';
+        const submitBtn = document.getElementById('signup-submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Creating Account...';
+
+        try {
+          const payload = {
+            name: document.getElementById('signup-name').value,
+            email: document.getElementById('signup-email').value,
+            phone: document.getElementById('signup-phone').value,
+            location: document.getElementById('signup-location').value,
+            preferred_language: document.getElementById('signup-language').value,
+            primary_crop: document.getElementById('signup-crop').value,
+            password: document.getElementById('signup-password').value
+          };
+          const res = await FarmGuard.api('/api/auth/register', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          FarmGuard.setAuth(res.access_token, res.user);
+          FarmGuard.showToast('Account created successfully! Welcome to FarmGuard AI.', 'success');
+          setTimeout(() => window.location.href = '/dashboard', 600);
+        } catch (err) {
+          errorBox.innerText = err.message;
+          errorBox.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.innerText = 'Create Free Farmer Account →';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Dashboard - LocalServe</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1 id="welcome-heading">Welcome, Professional</h1>
+        <p class="subtitle">Overview of your service jobs, ratings, and upcoming appointments</p>
+      </div>
+      <div style="display: flex; gap: 0.75rem;">
+        <a href="/provider_jobs.html" class="btn btn-primary">Manage Jobs</a>
+        <a href="/provider_profile_edit.html" class="btn btn-secondary">Edit Profile</a>
+      </div>
+    </div>
+
+    <!-- KPI Metric Cards -->
+    <div class="grid-4" style="margin-bottom: 2rem;">
+      <div class="card" style="text-align: center;">
+        <div style="font-size: 2rem; font-weight: 800; color: #d97706;" id="metric-pending">0</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Pending Requests</div>
+      </div>
+      <div class="card" style="text-align: center;">
+        <div style="font-size: 2rem; font-weight: 800; color: var(--primary);" id="metric-active">0</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Active Jobs</div>
+      </div>
+      <div class="card" style="text-align: center;">
+        <div style="font-size: 2rem; font-weight: 800; color: var(--success);" id="metric-completed">0</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Completed Jobs</div>
+      </div>
+      <div class="card" style="text-align: center;">
+        <div style="font-size: 2rem; font-weight: 800; color: #b45309;" id="metric-rating">⭐ 0.0</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Avg Customer Rating</div>
+      </div>
+    </div>
+
+    <!-- Recent Pending Requests Section -->
+    <div class="card" style="margin-bottom: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Incoming Requests (Action Required)</h3>
+        <a href="/provider_jobs.html" style="font-size: 0.9rem; color: var(--primary); text-decoration: none; font-weight: 600;">View all jobs →</a>
+      </div>
+
+      <div id="pending-jobs-table">
+        <div style="text-align: center; padding: 2rem;">Loading incoming requests...</div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/nav.js"></script>
+  <script>
+    const user = auth.requireAuth(["provider", "admin"]);
+    if (!user) throw new Error("Auth required");
+
+    document.getElementById("welcome-heading").textContent = `Welcome, ${user.name}`;
+
+    async function loadDashboardData() {
+      try {
+        const [profile, jobs] = await Promise.all([
+          api.get("/api/providers/profile"),
+          api.get("/api/providers/jobs")
+        ]);
+
+        // Metrics
+        const pending = jobs.filter(j => j.status === "REQUESTED");
+        const active = jobs.filter(j => ["ACCEPTED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS"].includes(j.status));
+        const completed = jobs.filter(j => j.status === "COMPLETED");
+
+        document.getElementById("metric-pending").textContent = pending.length;
+        document.getElementById("metric-active").textContent = active.length;
+        document.getElementById("metric-completed").textContent = completed.length;
+        document.getElementById("metric-rating").textContent = `⭐ ${profile.avg_rating > 0 ? profile.avg_rating.toFixed(1) : "New"}`;
+
+        // Render Pending Requests
+        const tableContainer = document.getElementById("pending-jobs-table");
+        if (pending.length === 0) {
+          tableContainer.innerHTML = `
+            <p style="text-align: center; color: var(--text-muted); padding: 1.5rem 0;">
+              No pending requests right now. You're all caught up!
+            </p>
+          `;
+          return;
+        }
+
+        tableContainer.innerHTML = `
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Booking ID</th>
+                  <th>Customer</th>
+                  <th>Service</th>
+                  <th>Date & Time</th>
+                  <th>Address</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${pending.map(j => `
+                  <tr>
+                    <td>#${j.id}</td>
+                    <td><strong>${j.customer_name}</strong><br><small style="color:var(--text-muted);">${j.customer_phone || ""}</small></td>
+                    <td>${j.service_name}</td>
+                    <td>${j.scheduled_date} at ${j.scheduled_time}</td>
+                    <td><small>${j.full_address}</small></td>
+                    <td>
+                      <div style="display: flex; gap: 0.4rem;">
+                        <button class="btn btn-success btn-sm" onclick="acceptRequest(${j.id})">Accept</button>
+                        <button class="btn btn-danger btn-sm" onclick="rejectRequest(${j.id})">Reject</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function acceptRequest(bookingId) {
+      try {
+        await api.put(`/api/bookings/${bookingId}/status`, { status: "ACCEPTED" });
+        loadDashboardData();
+      } catch (err) {
+        alert(err.message || "Failed to accept request");
+      }
+    }
+
+    async function rejectRequest(bookingId) {
+      if (!confirm("Are you sure you want to reject this booking request?")) return;
+      try {
+        await api.put(`/api/bookings/${bookingId}/status`, { status: "CANCELLED" });
+        loadDashboardData();
+      } catch (err) {
+        alert(err.message || "Failed to reject request");
+      }
+    }
+
+    loadDashboardData();
+  </script>
+</body>
+</html>

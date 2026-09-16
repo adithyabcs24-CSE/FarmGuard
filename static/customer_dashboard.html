@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find Local Services - LocalServe</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    /* Floating AI Chatbot Assistant Widget */
+    #ai-chatbot-launcher {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 990;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      border-radius: 9999px;
+      padding: 0.85rem 1.35rem;
+      box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4), 0 8px 10px -6px rgba(37, 99, 235, 0.2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #ai-chatbot-launcher:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px -5px rgba(37, 99, 235, 0.5);
+    }
+    #ai-chatbot-panel {
+      display: none;
+      position: fixed;
+      bottom: 84px;
+      right: 24px;
+      width: 390px;
+      max-width: calc(100vw - 32px);
+      height: 560px;
+      max-height: calc(100vh - 110px);
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .chatbot-header {
+      background: linear-gradient(135deg, #1e40af, #2563eb);
+      color: white;
+      padding: 0.85rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chatbot-header h3 {
+      color: white;
+      font-size: 1rem;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .chatbot-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .chat-bubble {
+      max-width: 85%;
+      padding: 0.65rem 0.85rem;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+    .chat-bubble-user {
+      align-self: flex-end;
+      background: var(--primary);
+      color: white;
+      border-bottom-right-radius: 2px;
+    }
+    .chat-bubble-bot {
+      align-self: flex-start;
+      background: white;
+      color: var(--text-main);
+      border: 1px solid var(--surface-border);
+      border-bottom-left-radius: 2px;
+      box-shadow: var(--shadow-sm);
+    }
+    .chip-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+    .choice-chip {
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+      padding: 0.35rem 0.7rem;
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .choice-chip:hover {
+      background: #dbeafe;
+    }
+    .match-card {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .match-card strong {
+      color: #166534;
+    }
+    .chatbot-footer {
+      padding: 0.75rem;
+      background: white;
+      border-top: 1px solid var(--surface-border);
+    }
+    .ranking-tag {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-block;
+      margin-bottom: 0.35rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="container">
+    <div class="section-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1>Find Trusted Local Service Providers</h1>
+        <p class="subtitle">Search and filter verified professionals near your address with AI-assisted matching</p>
+      </div>
+      <div>
+        <button class="btn btn-outline btn-sm" onclick="openChatbot('I have a problem with my sink leaking')" style="border-color: var(--primary); color: var(--primary);">
+          ✨ Ask AI Assistant
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter & Search Controls -->
+    <div class="filter-bar">
+      <div style="flex: 2; min-width: 200px;">
+        <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.25rem;">Search Provider</label>
+        <input type="text" id="search-input" class="form-control" placeholder="Search by name...">
+      </div>
+
+      <div style="flex: 1.5; min-width: 160px;">
+        <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.25rem;">Category</label>
+        <select id="category-filter" class="form-control" onchange="searchProviders()">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+
+      <div style="flex: 1.5; min-width: 170px;">
+        <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.25rem;">Sort Ranking</label>
+        <select id="sort-ranking" class="form-control" onchange="searchProviders()">
+          <option value="ai">✨ AI Smart Match (Recommended)</option>
+          <option value="rating">⭐ Highest Rated</option>
+          <option value="distance">📍 Distance (Nearest)</option>
+          <option value="experience">🏆 Most Experienced</option>
+        </select>
+      </div>
+
+      <div style="flex: 1; min-width: 110px;">
+        <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.25rem;">Min Rating</label>
+        <select id="rating-filter" class="form-control" onchange="searchProviders()">
+          <option value="">Any Rating</option>
+          <option value="4.0">⭐ 4.0+</option>
+          <option value="4.5">⭐ 4.5+</option>
+          <option value="4.8">⭐ 4.8+</option>
+        </select>
+      </div>
+
+      <div style="flex: 1.5; min-width: 180px;">
+        <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.25rem;">My Location (Lat, Lon)</label>
+        <div style="display: flex; gap: 0.25rem;">
+          <input type="text" id="location-input" class="form-control" placeholder="12.9784, 77.6408" value="12.9784, 77.6408" title="Customer Latitude and Longitude">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="useIndiranagar()" title="Indiranagar">📍</button>
+        </div>
+      </div>
+
+      <div style="flex: 1; min-width: 130px;">
+        <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.25rem;">Max Distance</label>
+        <select id="distance-filter" class="form-control" onchange="searchProviders()">
+          <option value="">Any Radius</option>
+          <option value="5">Within 5 km</option>
+          <option value="10">Within 10 km</option>
+          <option value="15">Within 15 km</option>
+          <option value="25">Within 25 km</option>
+        </select>
+      </div>
+
+      <div style="flex: 1; min-width: 120px;">
+        <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.25rem;">Max Price (₹)</label>
+        <input type="number" id="max-price" class="form-control" placeholder="e.g. 1500" onchange="searchProviders()">
+      </div>
+
+      <div>
+        <button type="button" class="btn btn-primary" onclick="searchProviders()" style="height: 40px;">
+          Filter
+        </button>
+      </div>
+    </div>
+
+    <!-- Provider Cards Grid -->
+    <div id="providers-container" class="grid-3">
+      <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">Loading available providers...</div>
+    </div>
+  </main>
+
+  <!-- Floating Chatbot Launcher Button -->
+  <div id="ai-chatbot-launcher" onclick="toggleChatbot()">
+    <span>✨</span>
+    <span>AI Problem Assistant</span>
+  </div>
+
+  <!-- Chatbot Panel -->
+  <div id="ai-chatbot-panel">
+    <div class="chatbot-header">
+      <h3><span>✨</span> LocalServe AI Assistant</h3>
+      <button style="background: none; border: none; color: white; font-size: 1.3rem; cursor: pointer;" onclick="toggleChatbot()">&times;</button>
+    </div>
+
+    <div id="chatbot-messages" class="chatbot-messages">
+      <div class="chat-bubble chat-bubble-bot">
+        👋 Hi! Describe your home service problem in plain words (e.g. <em>"water leaking under kitchen sink"</em> or <em>"ac blowing warm air"</em>).
+        <br><br>
+        I'll classify the issue, ask a quick follow-up to pinpoint the exact service, show data-backed pricing, and find the best provider for you!
+      </div>
+    </div>
+
+    <div class="chatbot-footer">
+      <form id="chatbot-form" style="display: flex; gap: 0.5rem;" onsubmit="handleChatbotSubmit(event)">
+        <input type="text" id="chatbot-input" class="form-control" style="font-size: 0.85rem;" placeholder="Describe your issue..." required autocomplete="off">
+        <button type="submit" class="btn btn-primary btn-sm" id="chatbot-send-btn">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/nav.js"></script>
+  <script>
+    let allCategories = [];
+    let botDiagnosisState = {
+      description: "",
+      category_id: null,
+      category_name: "",
+      answers: {}
+    };
+
+    function useIndiranagar() {
+      document.getElementById("location-input").value = "12.9784, 77.6408";
+      searchProviders();
+    }
+
+    async function loadCustomerAddressDefault() {
+      const user = auth.getUser();
+      if (user && user.role === "customer") {
+        try {
+          const addresses = await api.get("/api/customers/addresses");
+          if (addresses.length > 0 && addresses[0].latitude && addresses[0].longitude) {
+            document.getElementById("location-input").value = `${addresses[0].latitude}, ${addresses[0].longitude}`;
+          }
+        } catch (e) {
+          console.warn("Could not load default address:", e);
+        }
+      }
+    }
+
+    async function init() {
+      try {
+        allCategories = await api.get("/api/customers/categories");
+        const catSelect = document.getElementById("category-filter");
+        allCategories.forEach(c => {
+          const opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = c.name;
+          catSelect.appendChild(opt);
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const catIdParam = urlParams.get("category_id");
+        if (catIdParam) {
+          catSelect.value = catIdParam;
+        }
+
+        await loadCustomerAddressDefault();
+        await searchProviders();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function searchProviders() {
+      const container = document.getElementById("providers-container");
+      container.innerHTML = "<div style='grid-column: 1 / -1; text-align: center; padding: 2rem;'>Searching providers...</div>";
+
+      const search = document.getElementById("search-input").value.trim();
+      const category_id = document.getElementById("category-filter").value;
+      const min_rating = document.getElementById("rating-filter").value;
+      const max_distance = document.getElementById("distance-filter").value;
+      const max_price = document.getElementById("max-price").value;
+      const sort_ranking = document.getElementById("sort-ranking").value;
+
+      const locRaw = document.getElementById("location-input").value.trim();
+      let customer_lat = null;
+      let customer_lon = null;
+
+      if (locRaw.includes(",")) {
+        const parts = locRaw.split(",");
+        customer_lat = parseFloat(parts[0].trim());
+        customer_lon = parseFloat(parts[1].trim());
+      }
+
+      // If category is selected and user requested AI ranking:
+      if (category_id && sort_ranking === "ai") {
+        try {
+          let reRankParams = new URLSearchParams();
+          reRankParams.append("category_id", category_id);
+          if (customer_lat && customer_lon) {
+            reRankParams.append("customer_lat", customer_lat);
+            reRankParams.append("customer_lon", customer_lon);
+          }
+          if (max_distance) reRankParams.append("max_distance_km", max_distance);
+          if (min_rating) reRankParams.append("min_rating", min_rating);
+          if (max_price) reRankParams.append("max_price", max_price);
+
+          const reRankRes = await api.get(`/api/ai/recommend-providers?${reRankParams.toString()}`);
+          renderProviderCards(reRankRes.ranked_providers, true);
+          return;
+        } catch (e) {
+          console.warn("AI recommendation fallback to standard search:", e);
+        }
+      }
+
+      // Standard search
+      let queryParams = new URLSearchParams();
+      if (search) queryParams.append("search", search);
+      if (category_id) queryParams.append("category_id", category_id);
+      if (min_rating) queryParams.append("min_rating", min_rating);
+      if (max_price) queryParams.append("max_price", max_price);
+      if (customer_lat && customer_lon) {
+        queryParams.append("customer_lat", customer_lat);
+        queryParams.append("customer_lon", customer_lon);
+      }
+      if (max_distance) queryParams.append("max_distance_km", max_distance);
+
+      try {
+        let providers = await api.get(`/api/customers/providers?${queryParams.toString()}`);
+
+        // Sort manually if not AI
+        if (sort_ranking === "rating") {
+          providers.sort((a, b) => b.avg_rating - a.avg_rating);
+        } else if (sort_ranking === "distance") {
+          providers.sort((a, b) => (a.distance_km ?? 999) - (b.distance_km ?? 999));
+        } else if (sort_ranking === "experience") {
+          providers.sort((a, b) => b.experience_years - a.experience_years);
+        }
+
+        renderProviderCards(providers, false);
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div class="alert alert-danger" style="grid-column: 1 / -1;">Failed to fetch providers: ${err.message}</div>`;
+      }
+    }
+
+    function renderProviderCards(providers, isAiRanked) {
+      const container = document.getElementById("providers-container");
+      if (!providers || providers.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: white; border-radius: var(--radius-md); border: 1px solid var(--surface-border);">
+            <h3>No providers match your criteria</h3>
+            <p class="subtitle" style="margin-top: 0.5rem;">Try widening your distance radius or clearing price/rating filters.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = providers.map(p => {
+        let badgeHtml = `<span class="badge badge-pending">Pending Verification</span>`;
+        if (p.verification_status === "approved") {
+          badgeHtml = `<span class="badge badge-approved">✓ Verified</span>`;
+        } else if (p.verification_status === "rejected") {
+          badgeHtml = `<span class="badge badge-rejected">Rejected</span>`;
+        }
+
+        const distHtml = p.distance_km !== null ? `📍 <strong>${p.distance_km} km</strong> away` : `📍 ${p.service_radius_km} km radius`;
+
+        let aiBadge = "";
+        if (isAiRanked && p.recommendation_score !== undefined) {
+          const scorePercent = Math.round(p.recommendation_score * 100);
+          aiBadge = `
+            <div class="ranking-tag">
+              ✨ ${scorePercent}% Match • ${p.recommendation_reason}
+            </div>
+          `;
+        }
+
+        const servicesHtml = p.services.map(s => `
+          <div class="service-chip" style="display: block; margin-bottom: 0.5rem; background: var(--bg);">
+            <div style="display: flex; justify-content: space-between;">
+              <strong>${s.service_name}</strong>
+              <span style="color: var(--primary); font-weight: 700;">₹${s.price_min} - ₹${s.price_max}</span>
+            </div>
+            ${s.price_breakdown_note ? `<small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 2px;">💡 ${s.price_breakdown_note}</small>` : ""}
+          </div>
+        `).join("");
+
+        return `
+          <div class="provider-card">
+            <div>
+              ${aiBadge}
+              <div class="provider-header">
+                <div>
+                  <h3 style="margin-bottom: 0.2rem;">${p.name}</h3>
+                  <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    ${badgeHtml}
+                    <small style="color: var(--text-muted);">${p.experience_years} yrs exp</small>
+                  </div>
+                </div>
+                <div class="rating-badge">
+                  ⭐ ${p.avg_rating > 0 ? p.avg_rating.toFixed(1) : "New"}
+                </div>
+              </div>
+
+              <p style="font-size: 0.85rem; color: var(--secondary); margin-bottom: 0.75rem; line-height: 1.4;">
+                ${p.bio ? (p.bio.length > 100 ? p.bio.substring(0, 100) + "..." : p.bio) : "Verified Local Professional"}
+              </p>
+
+              <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                ${distHtml} • ${p.jobs_completed} jobs done
+              </div>
+
+              <div style="margin-bottom: 1rem;">
+                <strong style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">OFFERED SERVICES & PRICING:</strong>
+                ${servicesHtml || "<small style='color: var(--text-muted);'>No services listed yet</small>"}
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+              <a href="/provider_profile.html?id=${p.id}" class="btn btn-secondary btn-sm" style="flex: 1;">
+                View Profile
+              </a>
+              <a href="/booking.html?provider_id=${p.id}" class="btn btn-primary btn-sm" style="flex: 1;">
+                Book Now
+              </a>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // -------------------------------------------------------------
+    // AI Chatbot Widget Logic
+    // -------------------------------------------------------------
+    function toggleChatbot() {
+      const panel = document.getElementById("ai-chatbot-panel");
+      const isVisible = panel.style.display === "flex";
+      panel.style.display = isVisible ? "none" : "flex";
+      if (!isVisible) {
+        document.getElementById("chatbot-input").focus();
+      }
+    }
+
+    function openChatbot(prefillQuery = "") {
+      const panel = document.getElementById("ai-chatbot-panel");
+      panel.style.display = "flex";
+      if (prefillQuery) {
+        document.getElementById("chatbot-input").value = prefillQuery;
+        handleChatbotSubmit(new Event("submit"));
+      }
+    }
+
+    function appendChatMessage(text, isUser = false) {
+      const container = document.getElementById("chatbot-messages");
+      const bubble = document.createElement("div");
+      bubble.className = `chat-bubble ${isUser ? 'chat-bubble-user' : 'chat-bubble-bot'}`;
+      bubble.innerHTML = text;
+      container.appendChild(bubble);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function handleChatbotSubmit(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      const input = document.getElementById("chatbot-input");
+      const query = input.value.trim();
+      if (!query) return;
+
+      appendChatMessage(query, true);
+      input.value = "";
+
+      const btn = document.getElementById("chatbot-send-btn");
+      btn.disabled = true;
+
+      botDiagnosisState.description = query;
+
+      try {
+        // Step 1: Run Service Classifier
+        appendChatMessage("<em>Analyzing your issue against our catalog...</em>", false);
+        const classifyRes = await api.post("/api/ai/classify", { description: query });
+        
+        // Remove temporary loading bubble
+        const msgs = document.getElementById("chatbot-messages");
+        msgs.removeChild(msgs.lastChild);
+
+        if (!classifyRes.category_id) {
+          appendChatMessage(`
+            <div>
+              <strong>${classifyRes.category_name}</strong>
+              <p style="margin: 4px 0 8px 0; color: var(--secondary); font-size: 0.8rem;">${classifyRes.reasoning}</p>
+              <button class="btn btn-secondary btn-sm" style="font-size:0.75rem;" onclick="document.getElementById('category-filter').focus(); toggleChatbot();">
+                Browse Categories Manually ➔
+              </button>
+            </div>
+          `, false);
+          btn.disabled = false;
+          return;
+        }
+
+        botDiagnosisState.category_id = classifyRes.category_id;
+        botDiagnosisState.category_name = classifyRes.category_name;
+
+        // Step 2: Run Problem Assistant
+        const diagRes = await api.post("/api/ai/assistant/diagnose", {
+          description: query,
+          category_id: classifyRes.category_id,
+          answers: botDiagnosisState.answers
+        });
+
+        handleDiagnosisResponse(diagRes);
+
+      } catch (err) {
+        appendChatMessage(`<span style="color: var(--danger);">Error: ${err.message || "Failed to process request."}</span>`, false);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function selectDiagnosticAnswer(questionId, answer) {
+      botDiagnosisState.answers[questionId] = answer;
+      appendChatMessage(answer, true);
+
+      try {
+        const diagRes = await api.post("/api/ai/assistant/diagnose", {
+          description: botDiagnosisState.description,
+          category_id: botDiagnosisState.category_id,
+          answers: botDiagnosisState.answers
+        });
+        handleDiagnosisResponse(diagRes);
+      } catch (err) {
+        appendChatMessage(`<span style="color: var(--danger);">${err.message}</span>`, false);
+      }
+    }
+
+    async function handleDiagnosisResponse(diagRes) {
+      if (!diagRes.is_conclusive && diagRes.next_question) {
+        const q = diagRes.next_question;
+        const chipsHtml = q.options.map(opt => `
+          <button type="button" class="choice-chip" onclick="selectDiagnosticAnswer('${q.question_id}', '${opt.replace(/'/g, "\\'")}')">
+            ${opt}
+          </button>
+        `).join("");
+
+        appendChatMessage(`
+          <div>
+            <strong>Category: ${diagRes.category_name}</strong>
+            <p style="margin: 4px 0 6px 0;">${q.question}</p>
+            <div class="chip-container">${chipsHtml}</div>
+          </div>
+        `, false);
+        return;
+      }
+
+      if (diagRes.is_conclusive && diagRes.recommended_service_id) {
+        // Fetch data-backed price estimate
+        let priceInfoHtml = "";
+        try {
+          const priceRes = await api.post("/api/ai/estimate-price", {
+            category_id: diagRes.category_id,
+            description: botDiagnosisState.description
+          });
+
+          priceInfoHtml = `
+            <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #bbf7d0;">
+              <div><strong>Estimated Price:</strong> ₹${priceRes.price_estimate_min} - ₹${priceRes.price_estimate_max}</div>
+              <small style="color: #15803d; font-size: 0.75rem; display: block; margin-top: 2px;">
+                ${priceRes.data_source === 'historical_bookings' ? '📊 Data-derived from completed bookings' : '📋 Category catalog price range fallback'}
+              </small>
+            </div>
+          `;
+        } catch (e) {
+          console.warn("Could not fetch price estimate:", e);
+        }
+
+        // Fetch top recommended provider
+        let provId = 1;
+        try {
+          const recRes = await api.get(`/api/ai/recommend-providers?category_id=${diagRes.category_id}`);
+          if (recRes.ranked_providers && recRes.ranked_providers.length > 0) {
+            provId = recRes.ranked_providers[0].id;
+          }
+        } catch (e) {
+          console.warn("Could not fetch top provider:", e);
+        }
+
+        appendChatMessage(`
+          <div>
+            <div style="font-weight: 700; color: #15803d; margin-bottom: 4px;">✓ Diagnosed Problem</div>
+            <div class="match-card">
+              <div><strong>Service:</strong> ${diagRes.recommended_service_name}</div>
+              <div><strong>Category:</strong> ${diagRes.category_name}</div>
+              ${priceInfoHtml}
+              <div style="margin-top: 10px;">
+                <a href="/booking.html?service_id=${diagRes.recommended_service_id}&provider_id=${provId}&category_id=${diagRes.category_id}" class="btn btn-success btn-sm" style="width: 100%; text-decoration: none; padding: 0.45rem;">
+                  Book This Service Now ➔
+                </a>
+              </div>
+            </div>
+          </div>
+        `, false);
+
+        // Also update the main dashboard filter to this category!
+        document.getElementById("category-filter").value = diagRes.category_id;
+        searchProviders();
+        return;
+      }
+
+      if (diagRes.fallback_message) {
+        appendChatMessage(`
+          <div>
+            <p>${diagRes.fallback_message}</p>
+            <button class="btn btn-secondary btn-sm" onclick="toggleChatbot()">Browse Services</button>
+          </div>
+        `, false);
+      }
+    }
+
+    // Enter key triggers filter
+    document.getElementById("search-input").addEventListener("keypress", (e) => {
+      if (e.key === "Enter") searchProviders();
+    });
+
+    init();
+  </script>
+</body>
+</html>

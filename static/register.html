@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - LocalServe</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="container" style="max-width: 520px; margin-top: 1.5rem; margin-bottom: 2rem;">
+    <div class="card">
+      <h2 style="text-align: center; margin-bottom: 0.25rem;">Create an Account</h2>
+      <p class="subtitle" style="text-align: center; margin-bottom: 1.5rem;">Join LocalServe as a customer or service provider</p>
+
+      <div id="alert-box"></div>
+
+      <form id="register-form">
+        <div class="form-group">
+          <label>I want to:</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--surface-border); padding: 0.75rem; border-radius: var(--radius-sm); cursor: pointer;" id="role-cust-label">
+              <input type="radio" name="role" value="customer" checked onchange="toggleRoleFields()">
+              <span>Book Services</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--surface-border); padding: 0.75rem; border-radius: var(--radius-sm); cursor: pointer;" id="role-prov-label">
+              <input type="radio" name="role" value="provider" onchange="toggleRoleFields()">
+              <span>Offer Services</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" class="form-control" placeholder="John Doe" required>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" class="form-control" placeholder="john@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" class="form-control" placeholder="+91 98765 43210" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password (min 6 characters)</label>
+          <input type="password" id="password" class="form-control" placeholder="••••••••" minlength="6" required>
+        </div>
+
+        <!-- Provider-specific fields -->
+        <div id="provider-fields" style="display: none; border-top: 1px dashed var(--surface-border); padding-top: 1rem; margin-top: 1rem;">
+          <h4 style="margin-bottom: 0.75rem;">Provider Profile Information</h4>
+          
+          <div class="form-group">
+            <label for="bio">Professional Bio</label>
+            <textarea id="bio" class="form-control" placeholder="Describe your experience and specialties..."></textarea>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label for="experience_years">Experience (Years)</label>
+              <input type="number" id="experience_years" class="form-control" min="0" value="2">
+            </div>
+            <div class="form-group">
+              <label for="service_radius_km">Service Radius (km)</label>
+              <input type="number" id="service_radius_km" class="form-control" min="1" max="100" value="15">
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="submit-btn">
+          Create Account
+        </button>
+      </form>
+
+      <p style="text-align: center; font-size: 0.9rem; margin-top: 1.5rem; color: var(--text-muted);">
+        Already have an account? <a href="/login.html" style="color: var(--primary); font-weight: 600;">Log in</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/nav.js"></script>
+  <script>
+    auth.redirectIfLoggedIn();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("role") === "provider") {
+      document.querySelector("input[name='role'][value='provider']").checked = true;
+    }
+
+    function toggleRoleFields() {
+      const isProvider = document.querySelector("input[name='role']:checked").value === "provider";
+      document.getElementById("provider-fields").style.display = isProvider ? "block" : "none";
+    }
+    toggleRoleFields();
+
+    document.getElementById("register-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const alertBox = document.getElementById("alert-box");
+      const submitBtn = document.getElementById("submit-btn");
+      alertBox.innerHTML = "";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Creating account...";
+
+      const role = document.querySelector("input[name='role']:checked").value;
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const password = document.getElementById("password").value;
+
+      const payload = { role, name, email, phone, password };
+
+      if (role === "provider") {
+        payload.bio = document.getElementById("bio").value.trim();
+        payload.experience_years = parseInt(document.getElementById("experience_years").value) || 1;
+        payload.service_radius_km = parseFloat(document.getElementById("service_radius_km").value) || 10.0;
+        payload.latitude = 12.9716;
+        payload.longitude = 77.5946;
+      }
+
+      try {
+        const res = await api.post("/api/auth/register", payload);
+        auth.setAuth(res.access_token, res.user);
+
+        if (res.user.role === "provider") {
+          window.location.href = "/provider_dashboard.html";
+        } else {
+          window.location.href = "/customer_dashboard.html";
+        }
+      } catch (err) {
+        alertBox.innerHTML = `<div class="alert alert-danger">${err.message || "Registration failed"}</div>`;
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Create Account";
+      }
+    });
+  </script>
+</body>
+</html>

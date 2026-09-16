@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FarmGuard AI — Detect Crop Problems Before They Spread</title>
+  <meta name="description" content="Early crop problem detection and simple protection guidance for farmers.">
+  <link rel="stylesheet" href="/static/css/farmguard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22><text y=%2226%22 font-size=%2224%22>🌱</text></svg>">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container header-inner">
+      <a href="/" class="logo">
+        <span class="logo-badge">🌱</span>
+        <span>FarmGuard AI</span>
+      </a>
+
+      <nav class="nav-links mobile-hidden">
+        <a href="/" class="nav-link">Home</a>
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#pricing" class="nav-link">Pricing</a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <button class="btn btn-outline btn-icon theme-toggle-btn" aria-label="Toggle theme">
+          🌓
+        </button>
+        <div class="auth-nav-slot flex items-center gap-2">
+          <!-- Populated by JS -->
+          <a href="/auth?mode=login" class="btn btn-ghost btn-sm">Login</a>
+          <a href="/auth?mode=signup" class="btn btn-primary btn-sm">Get Started</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+        <div>
+          <div class="hero-tag">
+            <span>🛡️</span>
+            <span>Early Crop Problem Detection</span>
+          </div>
+          <h1 class="hero-title">Detect Crop Problems Before They Spread.</h1>
+          <p class="hero-subtitle">
+            FarmGuard AI helps farmers identify possible crop diseases and pest infestations early using image analysis and simple crop-protection guidance.
+          </p>
+
+          <div class="flex items-center gap-4" style="margin-bottom: 2rem;">
+            <a href="/dashboard" class="btn btn-primary btn-lg">
+              <span>📷 Scan Your Crop</span>
+              <span>→</span>
+            </a>
+            <a href="#how-it-works" class="btn btn-outline btn-lg">See How It Works</a>
+          </div>
+
+          <div class="notice-banner">
+            <span>ℹ️</span>
+            <span>Results are informational. Always confirm with your local agriculture expert.</span>
+          </div>
+        </div>
+
+        <div class="hero-image-wrapper">
+          <img src="/static/assets/hero-crop.jpg" alt="Tomato crop under inspection" class="hero-image">
+          <div class="hero-floating-stat">
+            <div class="flex items-center gap-3">
+              <span style="font-size: 1.5rem;">🔍</span>
+              <div>
+                <div style="font-weight: 700; font-size: 0.95rem;">Confidence 87% · 3 symptoms matched</div>
+                <div style="font-size: 0.8rem; opacity: 0.85;">Early Blight detected on foliage</div>
+              </div>
+            </div>
+            <div style="border-left: 1px solid rgba(255,255,255,0.2); padding-left: 1rem; text-align: right;">
+              <div style="font-weight: 700; color: #86efac;">4 crops monitored</div>
+              <div style="font-size: 0.8rem; color: #fde68a;">1 needs attention</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section id="how-it-works" style="padding: 5rem 0; background: var(--bg-surface); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+    <div class="container">
+      <div style="text-align: center; max-width: 650px; margin: 0 auto 3.5rem;">
+        <h2 style="font-size: 2.25rem; margin-bottom: 0.75rem;">How it works</h2>
+        <p style="color: var(--text-muted); font-size: 1.1rem;">Four simple steps, built for a phone in the field.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="card" style="text-align: center;">
+          <div style="width: 3rem; height: 3rem; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 1.25rem; font-size: 1.25rem; font-weight: 800;">1</div>
+          <h3 class="card-title" style="font-size: 1.1rem;">Take Live Photo or Upload</h3>
+          <p class="card-subtitle">Snap a live camera photo directly in the field with alignment guides or upload an existing photo.</p>
+        </div>
+
+        <div class="card" style="text-align: center;">
+          <div style="width: 3rem; height: 3rem; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 1.25rem; font-size: 1.25rem; font-weight: 800;">2</div>
+          <h3 class="card-title" style="font-size: 1.1rem;">Instant AI Analysis</h3>
+          <p class="card-subtitle">The system analyses crop condition, symptoms, lesion patterns, and color variations.</p>
+        </div>
+
+        <div class="card" style="text-align: center;">
+          <div style="width: 3rem; height: 3rem; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 1.25rem; font-size: 1.25rem; font-weight: 800;">3</div>
+          <h3 class="card-title" style="font-size: 1.1rem;">Actionable Advisory</h3>
+          <p class="card-subtitle">Get practical recommendations: immediate actions, certified organic remedies, and chemical dosages.</p>
+        </div>
+
+        <div class="card" style="text-align: center;">
+          <div style="width: 3rem; height: 3rem; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 1.25rem; font-size: 1.25rem; font-weight: 800;">4</div>
+          <h3 class="card-title" style="font-size: 1.1rem;">Monitor & Prevent</h3>
+          <p class="card-subtitle">Monitor the crop over time, record field notes, and act before problems spread across your acres.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section id="features" style="padding: 5rem 0;">
+    <div class="container">
+      <div style="text-align: center; max-width: 650px; margin: 0 auto 3.5rem;">
+        <h2 style="font-size: 2.25rem; margin-bottom: 0.75rem;">Everything you need to act early</h2>
+        <p style="color: var(--text-muted); font-size: 1.1rem;">Built specifically for smallholder and commercial farmers.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="card">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">🔬</div>
+          <h3 class="card-title">Computer Vision & Agronomy</h3>
+          <p class="card-subtitle" style="margin-bottom: 1rem;">
+            Add a leaf or crop photo, pick the crop and get a possible problem with a confidence score and severity ranking.
+          </p>
+          <span class="badge badge-healthy">8+ Major Crops Supported</span>
+        </div>
+
+        <div class="card">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">🍃</div>
+          <h3 class="card-title">Organic & Chemical Options</h3>
+          <p class="card-subtitle" style="margin-bottom: 1rem;">
+            Immediate actions, prevention measures, and organic bio-fungicides written in plain, farmer-friendly language.
+          </p>
+          <span class="badge badge-warning">Zero Harmful Misuse</span>
+        </div>
+
+        <div class="card">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">📋</div>
+          <h3 class="card-title">Crop Tracking & Field Notes</h3>
+          <p class="card-subtitle" style="margin-bottom: 1rem;">
+            Keep every scan, add field notes, and track whether each crop plot is monitoring, improving, or resolved.
+          </p>
+          <span class="badge badge-info">Full Season History</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sample Result Showcase -->
+  <section style="padding: 5rem 0; background: var(--bg-surface); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+    <div class="container">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+        <div>
+          <h2 style="font-size: 2.25rem; margin-bottom: 1rem;">A result you can act on</h2>
+          <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 1.5rem;">
+            Every scan explains what was found, how serious it looks, and exactly what to do next — in plain language, with organic options included.
+          </p>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem;">
+            <li class="flex items-center gap-2">
+              <span style="color: var(--primary);">✓</span>
+              <span><strong>Confidence Score & Severity:</strong> Know if it needs urgent action or routine monitoring.</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <span style="color: var(--primary);">✓</span>
+              <span><strong>Step-by-step Actions:</strong> Physical sanitation and spray schedule.</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <span style="color: var(--primary);">✓</span>
+              <span><strong>Voice Narration:</strong> Listen to the diagnosis in your preferred language.</span>
+            </li>
+          </ul>
+          <a href="/dashboard" class="btn btn-primary btn-lg">Try Live Scan Now →</a>
+        </div>
+
+        <div class="card" style="border-left: 5px solid var(--warning);">
+          <div class="flex items-center justify-between" style="margin-bottom: 1rem;">
+            <div>
+              <span style="font-size: 0.85rem; color: var(--text-subtle); text-transform: uppercase; font-weight: 700;">Diagnostic Report</span>
+              <h3 style="font-size: 1.4rem; color: var(--text-main);">Crop: Tomato — Early Blight</h3>
+              <div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">Alternaria solani</div>
+            </div>
+            <span class="badge badge-warning" style="font-size: 0.85rem;">High Severity</span>
+          </div>
+
+          <div style="background: var(--bg-muted); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem;">
+            <p style="font-size: 0.95rem; line-height: 1.5;">
+              "Remove affected lower leaves, water at the base in the morning and improve airflow between plants. Neem oil every 7 days helps slow the spread."
+            </p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
+            <div style="background: var(--primary-light); padding: 0.75rem; border-radius: var(--radius-sm);">
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--healthy-text);">ORGANIC REMEDY</div>
+              <div style="font-size: 0.85rem; color: var(--healthy-text);">Neem Oil (10,000 ppm) @ 5ml/L</div>
+            </div>
+            <div style="background: var(--bg-muted); padding: 0.75rem; border-radius: var(--radius-sm);">
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">CHEMICAL OPTION</div>
+              <div style="font-size: 0.85rem; color: var(--text-main);">Mancozeb 75% WP @ 2.5g/L</div>
+            </div>
+          </div>
+
+          <a href="/dashboard" class="btn btn-outline" style="width: 100%;">View Full Report & Try Scanner</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" style="padding: 5rem 0;">
+    <div class="container">
+      <div style="text-align: center; max-width: 650px; margin: 0 auto 3.5rem;">
+        <h2 style="font-size: 2.25rem; margin-bottom: 0.75rem;">Simple pricing</h2>
+        <p style="color: var(--text-muted); font-size: 1.1rem;">Start free. Upgrade when your field needs more.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Free Tier -->
+        <div class="card flex flex-col justify-between">
+          <div>
+            <span class="badge badge-info" style="margin-bottom: 1rem;">Try it on a few plants</span>
+            <div style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem;">₹0<span style="font-size: 1rem; font-weight: 500; color: var(--text-muted);">/month</span></div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Ideal for small backyard gardens and trials.</p>
+            <hr style="border: none; border-top: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.925rem;">
+              <li>✓ <strong>5 scans</strong> / month</li>
+              <li>✓ Basic recommendations</li>
+              <li>✓ Scan history</li>
+            </ul>
+          </div>
+          <div style="margin-top: 2rem;">
+            <a href="/auth?mode=signup" class="btn btn-outline" style="width: 100%;">Get Started Free</a>
+          </div>
+        </div>
+
+        <!-- Active Farm Tier -->
+        <div class="card flex flex-col justify-between" style="border: 2px solid var(--primary); box-shadow: var(--shadow-md);">
+          <div>
+            <span class="badge badge-healthy" style="margin-bottom: 1rem;">For an active farm</span>
+            <div style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--primary);">₹199<span style="font-size: 1rem; font-weight: 500; color: var(--text-muted);">/month</span></div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">For smallholder and progressive farmers.</p>
+            <hr style="border: none; border-top: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.925rem;">
+              <li>✓ <strong>50 scans</strong> / month</li>
+              <li>✓ Detailed chemical & organic recommendations</li>
+              <li>✓ Multi-crop monitoring</li>
+              <li>✓ Unlimited history & notes</li>
+              <li>✓ Multi-language voice narration</li>
+            </ul>
+          </div>
+          <div style="margin-top: 2rem;">
+            <a href="/auth?mode=signup" class="btn btn-primary" style="width: 100%;">Get Started with Active Farm</a>
+          </div>
+        </div>
+
+        <!-- FPO & Consultants Tier -->
+        <div class="card flex flex-col justify-between">
+          <div>
+            <span class="badge badge-warning" style="margin-bottom: 1rem;">For FPOs & consultants</span>
+            <div style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem;">₹499<span style="font-size: 1rem; font-weight: 500; color: var(--text-muted);">/month</span></div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">For cooperatives, agronomists, and retail dealers.</p>
+            <hr style="border: none; border-top: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.925rem;">
+              <li>✓ <strong>200 scans</strong> / month</li>
+              <li>✓ Advanced acreage monitoring</li>
+              <li>✓ Early-warning disease weather alerts</li>
+              <li>✓ Downloadable PDF Advisory Reports</li>
+              <li>✓ Priority agronomy support</li>
+            </ul>
+          </div>
+          <div style="margin-top: 2rem;">
+            <a href="/auth?mode=signup" class="btn btn-outline" style="width: 100%;">Get Started with FPO Plan</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section style="padding: 5rem 0; background: var(--bg-surface); text-align: center; border-top: 1px solid var(--border-color);">
+    <div class="container" style="max-width: 750px;">
+      <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Protect Your Crops Before Problems Spread.</h2>
+      <p style="color: var(--text-muted); font-size: 1.15rem; margin-bottom: 2rem;">
+        Take one photo today and know what to watch for tomorrow.
+      </p>
+      <a href="/dashboard" class="btn btn-primary btn-lg">Start Free Scan Now →</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8" style="margin-bottom: 3rem;">
+        <div>
+          <a href="/" class="logo" style="margin-bottom: 0.75rem;">
+            <span class="logo-badge">🌱</span>
+            <span>FarmGuard AI</span>
+          </a>
+          <p style="color: var(--text-muted); font-size: 0.875rem;">
+            Detect Early. Protect Smarter. Simple, sustainable crop-protection guidance for farmers worldwide.
+          </p>
+        </div>
+
+        <div>
+          <h4 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-subtle); margin-bottom: 1rem;">Product</h4>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+            <li><a href="#features" class="nav-link">Features</a></li>
+            <li><a href="#pricing" class="nav-link">Pricing</a></li>
+            <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+            <li><a href="/dashboard" class="nav-link">Farmer Dashboard</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-subtle); margin-bottom: 1rem;">Company</h4>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+            <li><a href="/about" class="nav-link">About Us</a></li>
+            <li><a href="/contact" class="nav-link">Contact & Support</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-subtle); margin-bottom: 1rem;">Legal</h4>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+            <li><a href="/privacy" class="nav-link">Privacy Policy</a></li>
+            <li><a href="/terms" class="nav-link">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid var(--border-color); padding-top: 2rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-subtle);">
+        <div>© 2026 FarmGuard AI. All rights reserved.</div>
+        <div>Built for farmers in the field.</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/farmguard.js"></script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact & Support — FarmGuard AI</title>
+  <link rel="stylesheet" href="/static/css/farmguard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22><text y=%2226%22 font-size=%2224%22>🌱</text></svg>">
+</head>
+<body style="min-height: 100vh; display: flex; flex-direction: column;">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container header-inner">
+      <a href="/" class="logo">
+        <span class="logo-badge">🌱</span>
+        <span>FarmGuard AI</span>
+      </a>
+
+      <nav class="nav-links mobile-hidden">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/#features" class="nav-link">Features</a>
+        <a href="/#pricing" class="nav-link">Pricing</a>
+        <a href="/about" class="nav-link">About</a>
+        <a href="/contact" class="nav-link" style="color: var(--primary);">Contact</a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <button class="btn btn-outline btn-icon theme-toggle-btn" aria-label="Toggle theme">🌓</button>
+        <div class="auth-nav-slot flex items-center gap-2">
+          <a href="/auth?mode=login" class="btn btn-ghost btn-sm">Login</a>
+          <a href="/auth?mode=signup" class="btn btn-primary btn-sm">Get Started</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contact Form -->
+  <main class="container" style="flex: 1; padding: 4rem 1.25rem; max-width: 650px;">
+    <div class="hero-tag">
+      <span>✉️</span>
+      <span>Get in Touch</span>
+    </div>
+    <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem;">Contact FarmGuard AI</h1>
+    <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 2rem;">
+      Have a question about crop disease diagnosis, customized FPO deployments, or agronomy partnerships? Drop us a line.
+    </p>
+
+    <div class="card">
+      <form id="contact-form">
+        <div class="form-group">
+          <label class="form-label" for="c-name">Full Name</label>
+          <input type="text" id="c-name" class="form-control" placeholder="Ramesh Patel" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="c-email">Email Address</label>
+          <input type="email" id="c-email" class="form-control" placeholder="ramesh@example.com" required>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-group">
+            <label class="form-label" for="c-cat">Category</label>
+            <select id="c-cat" class="form-control">
+              <option value="Agronomy Advisory">Agronomy Question</option>
+              <option value="FPO & Enterprise">FPO / Cooperative Partnership</option>
+              <option value="Technical Support">Technical Support</option>
+              <option value="General Inquiry">General Inquiry</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="c-sub">Subject</label>
+            <input type="text" id="c-sub" class="form-control" placeholder="e.g. FPO bulk deployment">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="c-msg">Message</label>
+          <textarea id="c-msg" class="form-control" rows="4" placeholder="How can we assist your farm?" required></textarea>
+        </div>
+
+        <button type="submit" id="c-submit-btn" class="btn btn-primary" style="width: 100%;">
+          Send Message →
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container" style="text-align: center; font-size: 0.85rem; color: var(--text-subtle);">
+      © 2026 FarmGuard AI. Dedicated to farmer prosperity and sustainable crop yields.
+    </div>
+  </footer>
+
+  <script src="/static/js/farmguard.js"></script>
+  <script>
+    document.getElementById('contact-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('c-submit-btn');
+      btn.disabled = true;
+      btn.innerText = 'Sending...';
+
+      const payload = {
+        name: document.getElementById('c-name').value,
+        email: document.getElementById('c-email').value,
+        category: document.getElementById('c-cat').value,
+        subject: document.getElementById('c-sub').value,
+        message: document.getElementById('c-msg').value
+      };
+
+      try {
+        const res = await FarmGuard.api('/api/contact', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        FarmGuard.showToast(res.message, 'success');
+        document.getElementById('contact-form').reset();
+      } catch (err) {
+        FarmGuard.showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Send Message →';
+      }
+    });
+  </script>
+</body>
+</html>

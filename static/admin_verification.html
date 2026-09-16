@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Verifications - Admin - LocalServe</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1>Provider Verification Portal</h1>
+        <p class="subtitle">Review submitted professional credentials, government IDs, and trade licenses</p>
+      </div>
+      <div>
+        <button class="btn btn-secondary btn-sm" onclick="loadProviders()">↻ Refresh List</button>
+      </div>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <div class="card">
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Current Status</th>
+              <th>Exp / Rating</th>
+              <th>Submitted Documents</th>
+              <th>Verification Actions</th>
+            </tr>
+          </thead>
+          <tbody id="providers-tbody">
+            <tr><td colspan="5" style="text-align: center; padding: 2rem;">Loading providers...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/nav.js"></script>
+  <script>
+    const user = auth.requireAuth(["admin"]);
+    if (!user) throw new Error("Admin authorization required");
+
+    async function loadProviders() {
+      const tbody = document.getElementById("providers-tbody");
+      try {
+        const providers = await api.get("/api/admin/providers");
+        if (providers.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem;">No providers registered yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = providers.map(p => {
+          let docsHtml = "<span style='color: var(--text-muted); font-size: 0.85rem;'>No documents submitted</span>";
+          if (p.verification_documents_json) {
+            try {
+              const docs = JSON.parse(p.verification_documents_json);
+              if (Array.isArray(docs) && docs.length > 0) {
+                docsHtml = docs.map(d => `
+                  <div style="display: inline-block; background: var(--bg); border: 1px solid var(--surface-border); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; margin: 2px;">
+                    📄 ${d}
+                  </div>
+                `).join("");
+              }
+            } catch (e) {
+              docsHtml = `<span>${p.verification_documents_json}</span>`;
+            }
+          }
+
+          const badgeClass = p.verification_status === "approved" ? "badge-approved" : (p.verification_status === "rejected" ? "badge-rejected" : "badge-pending");
+
+          return `
+            <tr>
+              <td>
+                <strong>${p.name}</strong><br>
+                <small style="color: var(--text-muted);">${p.email} • ${p.phone || "No phone"}</small><br>
+                <a href="/provider_profile.html?id=${p.id}" target="_blank" style="font-size: 0.8rem; color: var(--primary);">View Public Profile ↗</a>
+              </td>
+              <td>
+                <span class="badge ${badgeClass}" id="badge-${p.id}">${p.verification_status.toUpperCase()}</span>
+              </td>
+              <td>
+                ${p.experience_years} yrs exp<br>
+                <small style="color: #b45309; font-weight: 700;">⭐ ${p.avg_rating.toFixed(1)} (${p.jobs_completed} jobs)</small>
+              </td>
+              <td style="max-width: 250px;">
+                ${docsHtml}
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                  <button class="btn btn-success btn-sm" onclick="setVerification(${p.id}, 'approved')">
+                    ✓ Approve
+                  </button>
+                  <button class="btn btn-danger btn-sm" onclick="setVerification(${p.id}, 'rejected')">
+                    ✕ Reject
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join("");
+
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="5" style="color: var(--danger); text-align: center;">${err.message || "Failed to load providers"}</td></tr>`;
+      }
+    }
+
+    async function setVerification(providerId, statusVal) {
+      const alertBox = document.getElementById("alert-box");
+      alertBox.innerHTML = "";
+      try {
+        const res = await api.put(`/api/admin/providers/${providerId}/verification`, {
+          status: statusVal
+        });
+        alertBox.innerHTML = `<div class="alert alert-success">${res.message}</div>`;
+        loadProviders();
+      } catch (err) {
+        alertBox.innerHTML = `<div class="alert alert-danger">${err.message || "Failed to update status"}</div>`;
+      }
+    }
+
+    loadProviders();
+  </script>
+</body>
+</html>

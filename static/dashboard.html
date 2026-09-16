@@ -1,0 +1,2166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Farmer Dashboard — FarmGuard AI</title>
+  <link rel="stylesheet" href="/static/css/farmguard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22><text y=%2226%22 font-size=%2224%22>🌱</text></svg>">
+  <style>
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .kpi-icon {
+      width: 3rem;
+      height: 3rem;
+      border-radius: var(--radius-md);
+      display: grid;
+      place-items: center;
+      font-size: 1.5rem;
+      background: var(--bg-muted);
+    }
+    .kpi-val {
+      font-size: 1.75rem;
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--text-main);
+    }
+    .kpi-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .sample-pill {
+      background: var(--bg-muted);
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-full);
+      font-size: 0.825rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+    }
+    .sample-pill:hover, .sample-pill.active {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--healthy-text);
+    }
+    .timeline-note {
+      border-left: 2px solid var(--primary);
+      padding-left: 1rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body style="min-height: 100vh; background: var(--bg-primary); display: flex; flex-direction: column;">
+
+  <!-- Dashboard Top Bar -->
+  <header class="header">
+    <div class="container header-inner" style="height: 4.5rem;">
+      <div class="flex items-center gap-4">
+        <a href="/" class="logo">
+          <span class="logo-badge">🌱</span>
+          <span class="mobile-hidden">FarmGuard AI</span>
+        </a>
+        <div class="mobile-hidden" style="border-left: 1px solid var(--border-color); padding-left: 1rem;">
+          <span class="badge badge-info" id="user-location-badge">📍 Field</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Scan Quota Badge -->
+        <div id="quota-display" class="badge badge-healthy" style="cursor: pointer;" title="Click to view plans">
+          ⚡ <span id="quota-text">... scans</span>
+        </div>
+
+        <!-- Plan Upgrade Button -->
+        <button id="upgrade-plan-btn" class="btn btn-outline btn-sm mobile-hidden" style="border-color: var(--primary); color: var(--primary);">
+          ⭐ Upgrade
+        </button>
+
+        <!-- Theme Switch -->
+        <button class="btn btn-outline btn-icon theme-toggle-btn" aria-label="Toggle theme">🌓</button>
+
+        <!-- User Menu -->
+        <div class="flex items-center gap-2" style="border-left: 1px solid var(--border-color); padding-left: 0.75rem;">
+          <div style="text-align: right;" class="mobile-hidden">
+            <div id="user-name-display" style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">Farmer</div>
+            <div id="user-plan-display" style="font-size: 0.75rem; color: var(--text-muted);">Free Plan</div>
+          </div>
+          <button id="logout-btn" class="btn btn-ghost btn-sm" title="Log Out">🚪</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Dashboard -->
+  <main class="container" style="flex: 1; padding-top: 2rem; padding-bottom: 4rem;">
+    
+    <!-- Welcome Header & Agro-Weather Alert -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" style="margin-bottom: 1.5rem;">
+      <div class="card md:grid-cols-2" style="grid-column: span 2; display: flex; flex-direction: column; justify-content: center;">
+        <h1 style="font-size: 1.65rem; margin-bottom: 0.25rem;">
+          Namaste, <span id="farmer-name-heading" style="color: var(--primary);">Farmer</span> 👋
+        </h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+          Early crop monitoring active for your primary crop (<strong id="primary-crop-display">Tomato</strong>). Scan leaves to detect fungal, bacterial, viral, or pest threats early.
+        </p>
+      </div>
+
+      <!-- Weather Risk Card -->
+      <div class="card" style="background: var(--bg-muted); border-left: 4px solid var(--warning);">
+        <div class="flex items-center justify-between" style="margin-bottom: 0.5rem;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: var(--warning-text); text-transform: uppercase;">⚠️ Agro-Climatic Advisory</span>
+          <span class="badge badge-warning">High Risk</span>
+        </div>
+        <div style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem;">28.5°C · 82% Humidity</div>
+        <p style="font-size: 0.825rem; color: var(--text-muted); line-height: 1.4;">
+          High morning humidity elevated: Spore risk for Tomato Early/Late Blight and Rice Blast. Keep lower canopy pruned and avoid overhead spray.
+        </p>
+      </div>
+    </div>
+
+    <!-- KPI Metric Bar -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4" style="margin-bottom: 2rem;">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color: var(--primary);">🌾</div>
+        <div>
+          <div class="kpi-val" id="kpi-crops-count">0</div>
+          <div class="kpi-label">Active Plots</div>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color: #0284c7;">📷</div>
+        <div>
+          <div class="kpi-val" id="kpi-scans-count">0</div>
+          <div class="kpi-label">Total Scans</div>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color: var(--critical);">🚨</div>
+        <div>
+          <div class="kpi-val" id="kpi-alerts-count" style="color: var(--critical);">0</div>
+          <div class="kpi-label">Attention Needed</div>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color: #16a34a;">✅</div>
+        <div>
+          <div class="kpi-val" id="kpi-healthy-count">0</div>
+          <div class="kpi-label">Healthy Plots</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Navigation Tabs -->
+    <div class="tabs" style="margin-bottom: 2rem;">
+      <div id="d-tab-scan" class="tab active">📷 AI Crop Scanner</div>
+      <div id="d-tab-voice" class="tab">🎙️ Kisan Voice AI (किसान वाणी)</div>
+      <div id="d-tab-crops" class="tab">🌾 My Crops & Plots (<span id="crops-tab-badge">0</span>)</div>
+      <div id="d-tab-history" class="tab">📋 Scan History & Notes</div>
+      <div id="d-tab-library" class="tab">📖 Disease Encyclopedia</div>
+    </div>
+
+    <!-- ==================== SECTION 1: AI SCANNER ==================== -->
+    <section id="section-scanner">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        <!-- Left: Upload & Input Form -->
+        <div class="card">
+          <h2 style="font-size: 1.35rem; margin-bottom: 0.5rem;">New Crop Scan</h2>
+          <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
+            Upload or capture a clear photo of an affected leaf, stem, or fruit.
+          </p>
+
+          <!-- Quick 1-Click Sample Testing Pills -->
+          <div style="margin-bottom: 1.25rem;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-subtle); margin-bottom: 0.5rem; text-transform: uppercase;">
+              ⚡ Quick Test with Sample Leaf Photos:
+            </div>
+            <div class="flex gap-2" style="flex-wrap: wrap;">
+              <button type="button" class="sample-pill active" data-crop="Tomato" data-part="Leaf" data-obs="Brown concentric target rings on lower foliage" data-img="/static/assets/hero-crop.jpg">
+                🍅 Tomato Early Blight
+              </button>
+              <button type="button" class="sample-pill" data-crop="Potato" data-part="Leaf" data-obs="Water-soaked dark lesions and white fuzzy growth" data-img="/static/assets/hero-crop.jpg">
+                🥔 Potato Late Blight
+              </button>
+              <button type="button" class="sample-pill" data-crop="Cotton" data-part="Leaf" data-obs="Sticky honeydew with sooty mold and small aphids underneath" data-img="/static/assets/hero-crop.jpg">
+                ☁️ Cotton Aphids / Whitefly
+              </button>
+              <button type="button" class="sample-pill" data-crop="Rice" data-part="Leaf" data-obs="Diamond and spindle shaped lesions with brown margins" data-img="/static/assets/hero-crop.jpg">
+                🌾 Rice Blast
+              </button>
+              <button type="button" class="sample-pill" data-crop="Tomato" data-part="Leaf" data-obs="Healthy uniform deep green foliage without spots" data-img="/static/assets/hero-crop.jpg">
+                🌿 Healthy Foliage
+              </button>
+            </div>
+          </div>
+
+          <!-- Photo Action Options: Live Camera vs Browse -->
+          <div class="flex gap-2" style="margin-bottom: 0.85rem;">
+            <button type="button" id="btn-open-camera" class="btn btn-primary" style="flex: 1.2; font-weight: 700; gap: 0.5rem; box-shadow: 0 2px 8px var(--primary-glow);">
+              <span>📷</span> <span>Take Live Photo</span>
+            </button>
+            <button type="button" id="btn-browse-file" class="btn btn-outline" style="flex: 1; gap: 0.5rem;">
+              <span>📁</span> <span>Upload File</span>
+            </button>
+          </div>
+
+          <!-- Upload Dropzone -->
+          <div id="dropzone" class="dropzone" style="margin-bottom: 1.25rem; position: relative;">
+            <div id="dropzone-preview" style="display: none; margin-bottom: 0.5rem; position: relative;">
+              <span id="preview-source-badge" class="badge badge-info" style="position: absolute; top: 8px; right: 8px; z-index: 2; box-shadow: var(--shadow-sm); font-size: 0.75rem;">📷 Live Camera Photo</span>
+              <img id="preview-img" src="/static/assets/hero-crop.jpg" style="max-height: 220px; border-radius: var(--radius-md); margin: 0 auto; display: block; border: 1px solid var(--border-color); object-fit: contain;">
+              <div class="flex justify-center gap-2" style="margin-top: 0.75rem;">
+                <button type="button" id="btn-change-photo" class="btn btn-outline btn-sm">📷 Take / Change Photo</button>
+                <button type="button" id="btn-clear-photo" class="btn btn-ghost btn-sm" style="color: var(--critical);">✕ Remove</button>
+              </div>
+            </div>
+            <div id="dropzone-placeholder">
+              <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📸</div>
+              <div style="font-weight: 700; font-size: 1rem; color: var(--text-main);">Tap to take live photo or drop image here</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Live Camera, PNG, JPG, JPEG or WebP (max 10MB)</div>
+            </div>
+            <input type="file" id="scan-file-input" accept="image/*" style="display: none;">
+            <input type="file" id="scan-camera-input" accept="image/*" capture="environment" style="display: none;">
+          </div>
+
+          <!-- Crop Selection & Metadata Form -->
+          <form id="scanner-form">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="form-group">
+                <label class="form-label" for="scan-crop">Target Crop</label>
+                <select id="scan-crop" class="form-control" required>
+                  <option value="Tomato">Tomato</option>
+                  <option value="Potato">Potato</option>
+                  <option value="Cotton">Cotton</option>
+                  <option value="Rice">Rice (Paddy)</option>
+                  <option value="Wheat">Wheat</option>
+                  <option value="Chili">Chili / Pepper</option>
+                  <option value="Maize">Maize (Corn)</option>
+                  <option value="Onion">Onion</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="scan-part">Plant Part Affected</label>
+                <select id="scan-part" class="form-control">
+                  <option value="Leaf">Leaf / Foliage</option>
+                  <option value="Stem">Stem / Vine</option>
+                  <option value="Fruit">Fruit / Pod / Tuber</option>
+                  <option value="Flower">Flower / Square</option>
+                  <option value="Whole Plant">Whole Plant</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="scan-link-crop">Link to My Field Plot (Optional)</label>
+              <select id="scan-link-crop" class="form-control">
+                <option value="">-- Unlinked / General Field Scan --</option>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <div class="flex items-center justify-between" style="margin-bottom: 0.35rem;">
+                <label class="form-label" for="scan-observations" style="margin-bottom: 0;">Field Observations / Symptoms (Optional)</label>
+                <button type="button" id="btn-dictate-observations" class="btn btn-outline btn-sm" style="padding: 0.2rem 0.65rem; font-size: 0.78rem; gap: 0.35rem; color: var(--primary); border-color: var(--primary-light);">
+                  <span id="dictate-icon">🎙️</span> <span id="dictate-label">Speak Symptoms (बोलकर बताएं)</span>
+                </button>
+              </div>
+              <textarea id="scan-observations" class="form-control" rows="2" placeholder="e.g. Concentric rings on lower foliage, leaf yellowing... (Or tap Speak Symptoms)"></textarea>
+              <div id="dictate-status" style="display: none; font-size: 0.78rem; color: var(--primary); margin-top: 0.25rem; font-weight: 600;"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3" style="align-items: center; margin-bottom: 1.25rem;">
+              <div>
+                <label class="form-label" for="scan-language">Advisory Language</label>
+                <select id="scan-language" class="form-control">
+                  <option value="English" selected>English</option>
+                  <option value="Kannada">ಕನ್ನಡ (Kannada)</option>
+                  <option value="Hindi">हिंदी (Hindi)</option>
+                </select>
+              </div>
+
+              <div style="padding-top: 1.4rem;">
+                <button type="submit" id="analyze-btn" class="btn btn-primary" style="width: 100%;">
+                  <span>⚡ Analyze with AI</span>
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <!-- Scanning Progress Indicator -->
+          <div id="scan-loading" style="display: none; text-align: center; padding: 1.5rem; background: var(--bg-muted); border-radius: var(--radius-md);">
+            <div style="font-size: 1.75rem; animation: pulse 1s infinite;">🌱 🔍</div>
+            <div style="font-weight: 700; margin-top: 0.5rem;">Analyzing leaf pathology & matching symptoms...</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Checking against 25+ agricultural pathogen profiles</div>
+          </div>
+        </div>
+
+        <!-- Right: Real-time Diagnosis Output -->
+        <div>
+          <div id="diagnosis-empty" class="card" style="text-align: center; padding: 4rem 2rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.6;">🔬</div>
+            <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">No Active Scan</h3>
+            <p style="color: var(--text-muted); max-width: 380px; margin: 0 auto 1.5rem; font-size: 0.9rem;">
+              Select a sample leaf or upload a photo to generate an instant diagnosis with organic remedies and chemical controls.
+            </p>
+            <button id="trigger-sample-btn" class="btn btn-outline btn-sm">Load Tomato Early Blight Sample</button>
+          </div>
+
+          <!-- Active Diagnosis Card -->
+          <div id="diagnosis-result-card" class="card" style="display: none; border-left: 6px solid var(--primary);">
+            
+            <div class="flex items-center justify-between" style="margin-bottom: 1rem;">
+              <div>
+                <span id="res-problem-type" class="badge badge-info" style="margin-bottom: 0.25rem;">Fungal</span>
+                <h3 id="res-problem-name" style="font-size: 1.5rem; line-height: 1.2; color: var(--text-main);">Early Blight</h3>
+                <div id="res-scientific-name" style="font-size: 0.85rem; font-style: italic; color: var(--text-muted);">Alternaria solani</div>
+              </div>
+              <div style="text-align: right;">
+                <span id="res-severity-badge" class="badge badge-warning" style="font-size: 0.85rem;">High Severity</span>
+                <div style="font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-top: 0.25rem;">
+                  Confidence: <span id="res-confidence">89</span>%
+                </div>
+              </div>
+            </div>
+
+            <!-- Plain Language Summary -->
+            <div style="background: var(--bg-muted); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem;">
+              <p id="res-summary" style="font-size: 0.95rem; line-height: 1.5;"></p>
+            </div>
+
+            <!-- Audio Narration Trigger -->
+            <div class="flex items-center justify-between" style="margin-bottom: 1.25rem; background: var(--primary-light); padding: 0.65rem 1rem; border-radius: var(--radius-md);">
+              <div class="flex items-center gap-2">
+                <span>🔊</span>
+                <span style="font-size: 0.85rem; font-weight: 700; color: var(--healthy-text);">Audio Advisory for Farmers</span>
+              </div>
+              <div class="flex gap-2">
+                <button id="res-audio-btn" class="btn btn-audio btn-sm">▶ Play Narration</button>
+                <button id="res-stop-audio-btn" class="btn btn-outline btn-sm" style="display: none;">⏹ Stop</button>
+              </div>
+            </div>
+
+            <!-- Tabbed Action Items -->
+            <div style="margin-bottom: 1.25rem;">
+              <div style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--critical); margin-bottom: 0.35rem;">
+                🚨 Immediate Action Steps
+              </div>
+              <ul id="res-immediate-list" style="padding-left: 1.25rem; font-size: 0.875rem; color: var(--text-main);"></ul>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+              <div style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--healthy); margin-bottom: 0.35rem;">
+                🌱 Organic & Biological Remedies
+              </div>
+              <ul id="res-organic-list" style="padding-left: 1.25rem; font-size: 0.875rem; color: var(--text-main);"></ul>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+              <div style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: #b45309; margin-bottom: 0.35rem;">
+                🧪 Chemical Controls (Approved Standard Dosage)
+              </div>
+              <ul id="res-chemical-list" style="padding-left: 1.25rem; font-size: 0.875rem; color: var(--text-main);"></ul>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+              <div style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--text-subtle); margin-bottom: 0.35rem;">
+                🛡️ Long-Term Prevention
+              </div>
+              <ul id="res-prevention-list" style="padding-left: 1.25rem; font-size: 0.875rem; color: var(--text-muted);"></ul>
+            </div>
+
+            <div class="flex gap-3" style="border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+              <a id="res-report-link" href="#" target="_blank" class="btn btn-outline" style="flex: 1;">
+                🖨️ Print / PDF Report
+              </a>
+              <button id="res-scan-another-btn" class="btn btn-primary" style="flex: 1;">
+                Scan Another Leaf
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION: KISAN VOICE AI ASSISTANT ==================== -->
+    <section id="section-voice-assistant" style="display: none;">
+      <div class="card" style="margin-bottom: 1.5rem; border-left: 6px solid var(--primary);">
+        <div class="flex items-center justify-between" style="flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <div class="flex items-center gap-2">
+              <span style="font-size: 1.5rem;">🎙️</span>
+              <h2 style="font-size: 1.45rem; line-height: 1.2;">Kisan Voice AI Assistant (ಕಿಸಾನ್ ಧ್ವನಿ / किसान वाणी AI)</h2>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
+              Select your audio language (<strong>English</strong>, <strong>हिंदी</strong>, <strong>ಕನ್ನಡ</strong>) and speak into the mic for instant spoken remedies.
+            </p>
+          </div>
+
+          <!-- Controls: Language & Auto-Speech Toggle -->
+          <div class="flex items-center gap-3" style="flex-wrap: wrap;">
+            <div>
+              <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-subtle); display: block; margin-bottom: 0.25rem;">🗣️ ಆಡಿಯೋ ಭಾಷೆ / Audio Language:</label>
+              <select id="voice-lang-select" class="form-control" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.85rem; font-weight: 700;">
+                <option value="English" selected>English</option>
+                <option value="Hindi">हिंदी (Hindi)</option>
+                <option value="Kannada">ಕನ್ನಡ (Kannada)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-subtle); display: block; margin-bottom: 0.25rem;">Crop Context (ಬೆಳೆ / फसल):</label>
+              <select id="voice-crop-select" class="form-control" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.85rem;">
+                <option value="">-- Auto-Detect Crop --</option>
+                <option value="Tomato">Tomato (ಟೊಮೆಟೊ / टमाटर)</option>
+                <option value="Cotton">Cotton (ಹತ್ತಿ / कपास)</option>
+                <option value="Rice">Rice / Paddy (ಭತ್ತ / धान)</option>
+                <option value="Potato">Potato (ಆಲೂಗಡ್ಡೆ / आलू)</option>
+                <option value="Chili">Chili (ಮೆಣಸಿನಕಾಯಿ / मिर्च)</option>
+                <option value="Wheat">Wheat (ಗೋಧಿ / गेहूं)</option>
+                <option value="Maize">Maize (ಮೆಕ್ಕೆಜೋಳ / मक्का)</option>
+                <option value="Onion">Onion (ಈರುಳ್ಳಿ / प्याज)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Voice Interaction Hero Card -->
+        <div style="background: #0d1711; border: 1px solid #1f3825; border-radius: var(--radius-lg); padding: 2rem 1.5rem; text-align: center; color: #f0f7f2; margin-bottom: 1.5rem; box-shadow: var(--shadow-md);">
+          <div style="font-size: 0.85rem; font-weight: 700; color: #86efac; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">
+            🔊 Hands-Free Voice Assistant for Farmers
+          </div>
+
+          <!-- Pulsing Mic Button -->
+          <div style="margin: 0 auto 1.25rem; display: inline-block; position: relative;">
+            <button type="button" id="voice-main-mic-btn" class="btn" style="width: 5.5rem; height: 5.5rem; border-radius: 50%; background: #16a34a; border: 4px solid #86efac; color: #ffffff; font-size: 2.2rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 28px rgba(34, 197, 94, 0.45); cursor: pointer; transition: all 0.2s ease; margin: 0 auto;">
+              🎙️
+            </button>
+          </div>
+
+          <div id="voice-status-heading" style="font-size: 1.15rem; font-weight: 700; color: #ffffff; margin-bottom: 0.4rem;">
+            Tap microphone and speak your query
+          </div>
+          <div id="voice-status-sub" style="font-size: 0.82rem; color: #9bb2a3; margin-bottom: 1rem;">
+            Ask about crop diseases, pest infestations, bio-fertilizers, or organic remedies
+          </div>
+
+          <!-- Live Transcript / Listening Box -->
+          <div id="voice-transcript-box" style="background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(134, 239, 172, 0.25); border-radius: var(--radius-md); padding: 0.75rem 1.25rem; max-width: 650px; margin: 0 auto 0.75rem; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
+            <span id="voice-transcript-text" style="font-size: 0.95rem; color: #86efac; font-style: italic;">
+              "Listening... ask your farming question"
+            </span>
+            <button type="button" id="voice-submit-speech-btn" class="btn btn-primary btn-sm" style="display: none; padding: 0.35rem 1rem; font-size: 0.85rem; font-weight: 700; border-radius: var(--radius-full);">
+              ⚡ Ask Kisan AI →
+            </button>
+          </div>
+
+          <!-- Auto Readout Audio Setting -->
+          <div class="flex items-center justify-center gap-2" style="font-size: 0.82rem; color: #9bb2a3;">
+            <label style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
+              <input type="checkbox" id="voice-auto-readout-chk" checked style="accent-color: #22c55e;">
+              <span id="voice-auto-readout-label">🔊 Auto-speak answer aloud (ಉತ್ತರವನ್ನು ಧ್ವನಿಯಲ್ಲಿ ಆಲಿಸಿ)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 1-Click Quick Voice Question Pills -->
+        <div style="margin-bottom: 1.5rem;">
+          <div id="voice-quick-heading" style="font-size: 0.82rem; font-weight: 700; color: var(--text-subtle); margin-bottom: 0.6rem; text-transform: uppercase;">
+            ⚡ Quick Spoken Questions (ಕೇಳಲು ಟ್ಯಾಪ್ ಮಾಡಿ / Tap to ask):
+          </div>
+          <div id="voice-quick-pills-container" class="flex gap-2" style="flex-wrap: wrap;">
+            <!-- Dynamically populated based on chosen language -->
+          </div>
+        </div>
+
+        <!-- Chat Conversation Stream -->
+        <div style="margin-bottom: 1.5rem;">
+          <div class="flex items-center justify-between" style="margin-bottom: 0.75rem;">
+            <h3 style="font-size: 1.1rem;">बातचीत एवं सलाह (Conversation & Remedies)</h3>
+            <button type="button" id="voice-clear-chat-btn" class="btn btn-ghost btn-sm" style="color: var(--text-muted); font-size: 0.8rem;">
+              🗑️ Clear Conversation
+            </button>
+          </div>
+
+          <div id="voice-chat-feed" style="display: flex; flex-direction: column; gap: 1rem; max-height: 520px; overflow-y: auto; padding: 0.5rem;">
+            <!-- Welcome message -->
+            <div class="card" style="background: var(--bg-muted); border-left: 4px solid var(--primary); padding: 1rem 1.25rem;">
+              <div class="flex items-center justify-between" style="margin-bottom: 0.5rem;">
+                <span style="font-weight: 700; color: var(--primary);">🌱 Kisan Voice AI Advisor</span>
+                <span class="badge badge-info" style="font-size: 0.72rem;">Online</span>
+              </div>
+              <p style="font-size: 0.92rem; line-height: 1.5; color: var(--text-main);">
+                नमस्ते किसान भाई! मैं फार्मगार्ड का <strong>किसान वाणी AI सलाहकार</strong> हूँ। 
+                आप ऊपर लगे माइक बटन को दबाकर अपनी फसल, पत्तियों पर धब्बे, कीड़े या खाद के बारे में बोलकर पूछ सकते हैं।
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Text Input Option for fallback -->
+        <form id="voice-text-fallback-form" class="flex gap-2" style="border-top: 1px solid var(--border-color); padding-top: 1rem;">
+          <input type="text" id="voice-text-input" class="form-control" placeholder="बोलने के बजाय लिखकर भी पूछ सकते हैं (Type question if mic is unavailable)..." style="flex: 1;">
+          <button type="submit" class="btn btn-primary" style="gap: 0.5rem;">
+            <span>भेजें</span> <span>↵</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 2: MY CROPS ==================== -->
+    <section id="section-crops" style="display: none;">
+      <div class="flex items-center justify-between" style="margin-bottom: 1.5rem;">
+        <div>
+          <h2 style="font-size: 1.5rem;">My Crop Plots & Fields</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Track crop health, acreage, and disease progress across your land.</p>
+        </div>
+        <button id="open-add-crop-btn" class="btn btn-primary btn-sm">
+          + Add New Crop Plot
+        </button>
+      </div>
+
+      <div id="crops-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 3: SCAN HISTORY ==================== -->
+    <section id="section-history" style="display: none;">
+      <div class="flex items-center justify-between" style="margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2 style="font-size: 1.5rem;">Scan History & Field Notes</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">All diagnostic logs with field observations and follow-up notes.</p>
+        </div>
+        <div class="flex gap-2">
+          <select id="history-filter-status" class="form-control" style="width: auto; font-size: 0.85rem;">
+            <option value="">All Statuses</option>
+            <option value="Monitoring">Monitoring</option>
+            <option value="Improving">Improving</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="history-list" class="flex flex-col gap-4">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 4: DISEASE LIBRARY ==================== -->
+    <section id="section-library" style="display: none;">
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label class="form-label">Search Disease or Symptom</label>
+            <input type="text" id="lib-search-input" class="form-control" placeholder="e.g. Blight, Rust, Armyworm...">
+          </div>
+          <div>
+            <label class="form-label">Filter by Crop</label>
+            <select id="lib-crop-filter" class="form-control">
+              <option value="">All Crops</option>
+              <option value="Tomato">Tomato</option>
+              <option value="Potato">Potato</option>
+              <option value="Cotton">Cotton</option>
+              <option value="Rice">Rice</option>
+              <option value="Wheat">Wheat</option>
+              <option value="Chili">Chili</option>
+              <option value="Maize">Maize</option>
+              <option value="Onion">Onion</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Category</label>
+            <select id="lib-category-filter" class="form-control">
+              <option value="">All Categories</option>
+              <option value="Fungal">Fungal</option>
+              <option value="Bacterial">Bacterial</option>
+              <option value="Viral">Viral</option>
+              <option value="Pest">Pest Infestation</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="disease-library-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Rendered dynamically -->
+      </div>
+    <!-- Floating Quick Voice Action Button -->
+    <div id="floating-voice-widget" style="position: fixed; bottom: 24px; right: 24px; z-index: 800;">
+      <button type="button" id="floating-voice-btn" class="btn btn-primary" style="border-radius: var(--radius-full); padding: 0.75rem 1.35rem; font-weight: 700; gap: 0.6rem; box-shadow: 0 8px 24px rgba(22, 163, 74, 0.45); border: 2px solid #86efac; font-size: 0.95rem;" title="Ask Kisan Voice AI (बोलकर पूछें)">
+        <span style="font-size: 1.35rem; animation: pulse 2s infinite;">🎙️</span>
+        <span>Kisan Voice AI (बोलें)</span>
+      </button>
+    </div>
+
+  </main>
+
+  <!-- MODAL: ADD CROP -->
+  <div id="add-crop-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="flex items-center justify-between" style="margin-bottom: 1.25rem;">
+        <h3 style="font-size: 1.25rem;">Add New Crop Plot</h3>
+        <button class="btn btn-ghost btn-sm close-modal-btn">✕</button>
+      </div>
+
+      <form id="add-crop-form">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-group">
+            <label class="form-label">Crop Name</label>
+            <select id="new-crop-name" class="form-control" required>
+              <option value="Tomato">Tomato</option>
+              <option value="Potato">Potato</option>
+              <option value="Cotton">Cotton</option>
+              <option value="Rice">Rice (Paddy)</option>
+              <option value="Wheat">Wheat</option>
+              <option value="Chili">Chili / Pepper</option>
+              <option value="Maize">Maize</option>
+              <option value="Onion">Onion</option>
+              <option value="Sugarcane">Sugarcane</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Variety / Hybrid</label>
+            <input type="text" id="new-crop-variety" class="form-control" placeholder="e.g. Roma, Bt RCH-2">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-group">
+            <label class="form-label">Area (Acres)</label>
+            <input type="number" step="0.1" id="new-crop-area" class="form-control" value="1.0" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Planting Date</label>
+            <input type="text" id="new-crop-date" class="form-control" placeholder="e.g. 15 July 2026">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Field / Plot Location</label>
+          <input type="text" id="new-crop-location" class="form-control" placeholder="e.g. North Plot - Near Well">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Initial Health Status</label>
+          <select id="new-crop-health" class="form-control">
+            <option value="Healthy">Healthy</option>
+            <option value="Monitoring">Monitoring</option>
+            <option value="Attention Required">Attention Required</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Field Notes</label>
+          <textarea id="new-crop-notes" class="form-control" rows="2" placeholder="Irrigation method, soil amendments, etc."></textarea>
+        </div>
+
+        <div class="flex justify-between" style="margin-top: 1.5rem;">
+          <button type="button" class="btn btn-outline close-modal-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Crop Plot →</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: UPGRADE PLAN -->
+  <div id="upgrade-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 750px;">
+      <div class="flex items-center justify-between" style="margin-bottom: 1.25rem;">
+        <div>
+          <h3 style="font-size: 1.35rem;">Upgrade Your Farm Plan</h3>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Higher scan limits, advanced disease warnings, and multi-field support.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm close-modal-btn">✕</button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" style="margin-bottom: 1.5rem;">
+        <div class="card" style="text-align: center;">
+          <h4>Free Plan</h4>
+          <div style="font-size: 1.5rem; font-weight: 800; margin: 0.5rem 0;">₹0/mo</div>
+          <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 1rem;">5 scans / month</div>
+          <button class="btn btn-outline btn-sm upgrade-to-btn" data-plan="Free" style="width: 100%;">Select Free</button>
+        </div>
+
+        <div class="card" style="text-align: center; border: 2px solid var(--primary);">
+          <span class="badge badge-healthy" style="margin-bottom: 0.25rem;">Popular</span>
+          <h4>Active Farm</h4>
+          <div style="font-size: 1.5rem; font-weight: 800; margin: 0.5rem 0; color: var(--primary);">₹199/mo</div>
+          <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 1rem;">50 scans / month</div>
+          <button class="btn btn-primary btn-sm upgrade-to-btn" data-plan="Active" style="width: 100%;">Upgrade to Active</button>
+        </div>
+
+        <div class="card" style="text-align: center;">
+          <h4>FPO / Consultant</h4>
+          <div style="font-size: 1.5rem; font-weight: 800; margin: 0.5rem 0;">₹499/mo</div>
+          <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 1rem;">200 scans / month</div>
+          <button class="btn btn-outline btn-sm upgrade-to-btn" data-plan="FPO" style="width: 100%;">Upgrade to FPO</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: LIVE CAMERA VIEWFINDER -->
+  <div id="camera-modal" class="modal-overlay" style="display: none; z-index: 1000;">
+    <div class="modal-content" style="max-width: 620px; width: 95%; padding: 1.25rem; border-radius: var(--radius-lg); background: #0c140f; color: #f0f7f2; border: 1px solid #1e2f24; box-shadow: var(--shadow-lg);">
+      <!-- Header -->
+      <div class="flex items-center justify-between" style="margin-bottom: 0.85rem; border-bottom: 1px solid #1e2f24; padding-bottom: 0.65rem;">
+        <div class="flex items-center gap-2">
+          <span style="font-size: 1.25rem;">📷</span>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: #f0f7f2; margin: 0; line-height: 1.2;">Live Crop Camera</h3>
+            <div style="font-size: 0.75rem; color: #86efac;">Real-time Leaf & Pest Diagnosis</div>
+          </div>
+        </div>
+        <button type="button" id="camera-modal-close-btn" class="btn btn-ghost btn-sm" style="color: #9bb2a3; font-size: 1.35rem; padding: 0.2rem 0.5rem; line-height: 1;">✕</button>
+      </div>
+
+      <!-- Viewfinder Video Container -->
+      <div id="camera-viewport-container" style="position: relative; width: 100%; aspect-ratio: 4/3; max-height: 380px; background: #000; border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center;">
+        <video id="camera-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+        <canvas id="camera-canvas" style="display: none;"></canvas>
+
+        <!-- Focus Reticle Overlay -->
+        <div id="camera-reticle" style="position: absolute; inset: 12%; border: 2px dashed rgba(34, 197, 94, 0.65); border-radius: var(--radius-md); pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 0.5rem; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.38);">
+          <div style="width: 100%; display: flex; justify-content: space-between;">
+            <div style="width: 18px; height: 18px; border-top: 3px solid #22c55e; border-left: 3px solid #22c55e;"></div>
+            <div style="width: 18px; height: 18px; border-top: 3px solid #22c55e; border-right: 3px solid #22c55e;"></div>
+          </div>
+          <div style="background: rgba(0, 0, 0, 0.7); padding: 0.25rem 0.85rem; border-radius: var(--radius-full); font-size: 0.75rem; color: #86efac; font-weight: 600; text-align: center; backdrop-filter: blur(4px);">
+            🌿 Align affected leaf in the center
+          </div>
+          <div style="width: 100%; display: flex; justify-content: space-between;">
+            <div style="width: 18px; height: 18px; border-bottom: 3px solid #22c55e; border-left: 3px solid #22c55e;"></div>
+            <div style="width: 18px; height: 18px; border-bottom: 3px solid #22c55e; border-right: 3px solid #22c55e;"></div>
+          </div>
+        </div>
+
+        <!-- Shutter Flash Effect Overlay -->
+        <div id="shutter-flash" style="position: absolute; inset: 0; background: #ffffff; opacity: 0; pointer-events: none; transition: opacity 0.15s ease;"></div>
+
+        <!-- Viewfinder Overlay Controls (Top Right: Flip Camera & Torch) -->
+        <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 0.5rem; z-index: 5;">
+          <button type="button" id="camera-flip-btn" class="btn btn-sm" style="background: rgba(0,0,0,0.65); color: #f0f7f2; border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(6px); padding: 0.35rem 0.65rem; font-size: 0.8rem; border-radius: var(--radius-full);" title="Switch Front/Back Camera">
+            🔄 Flip Camera
+          </button>
+          <button type="button" id="camera-torch-btn" class="btn btn-sm" style="display: none; background: rgba(0,0,0,0.65); color: #f0f7f2; border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(6px); padding: 0.35rem 0.65rem; font-size: 0.8rem; border-radius: var(--radius-full);" title="Toggle Flashlight">
+            🔦 Torch
+          </button>
+        </div>
+
+        <!-- Camera Status Indicator -->
+        <div id="camera-status-indicator" style="position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 0.4rem; background: rgba(0,0,0,0.65); padding: 0.25rem 0.6rem; border-radius: var(--radius-full); font-size: 0.72rem; color: #86efac; z-index: 5;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; animation: pulse 1.5s infinite;"></span>
+          <span id="camera-status-text">LIVE FEED</span>
+        </div>
+
+        <!-- Fallback Message if camera fails or permission denied -->
+        <div id="camera-fallback" style="display: none; text-align: center; padding: 2rem 1.25rem; position: absolute; inset: 0; background: #111a14; z-index: 10; flex-direction: column; justify-content: center; align-items: center;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📷⚠️</div>
+          <h4 style="font-size: 1rem; color: #f0f7f2; margin-bottom: 0.5rem;">Camera Permission or Access Issue</h4>
+          <p id="camera-error-msg" style="font-size: 0.82rem; color: #9bb2a3; margin-bottom: 1.25rem; max-width: 340px;">
+            Unable to access live webcam. Please ensure camera permissions are allowed in your browser settings.
+          </p>
+          <button type="button" id="camera-native-fallback-btn" class="btn btn-primary btn-sm">
+            📱 Open Mobile Camera / File
+          </button>
+        </div>
+      </div>
+
+      <!-- Snapshot Review Controls (Shown after snapping photo) -->
+      <div id="camera-snapshot-review" style="display: none; margin-top: 1rem; text-align: center;">
+        <div style="margin-bottom: 0.75rem; font-size: 0.85rem; color: #86efac; font-weight: 700;">
+          ✨ Photo captured! Review or use it below:
+        </div>
+        <div class="flex gap-2 justify-center" style="flex-wrap: wrap;">
+          <button type="button" id="camera-retake-btn" class="btn btn-outline btn-sm" style="color: #f0f7f2; border-color: #2e4738;">
+            🔄 Retake Photo
+          </button>
+          <button type="button" id="camera-use-btn" class="btn btn-primary btn-sm">
+            ✅ Use This Photo
+          </button>
+          <button type="button" id="camera-use-analyze-btn" class="btn btn-sm" style="background: #16a34a; color: #ffffff; font-weight: 700;">
+            ⚡ Use & Analyze Now
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Stream Controls (Shown while camera is active) -->
+      <div id="camera-live-controls" style="margin-top: 1rem; text-align: center;">
+        <div class="flex items-center justify-center gap-4">
+          <button type="button" id="camera-shutter-btn" class="btn" style="width: 4.25rem; height: 4.25rem; border-radius: 50%; background: #ffffff; border: 4px solid #22c55e; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(34, 197, 94, 0.45); cursor: pointer; transition: transform 0.1s ease; padding: 0;" title="Capture Photo">
+            <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #22c55e;"></div>
+          </button>
+        </div>
+        <div style="font-size: 0.78rem; color: #9bb2a3; margin-top: 0.5rem;">
+          Tap to capture high-resolution leaf snapshot
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/farmguard.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const token = FarmGuard.getToken();
+      let currentUser = FarmGuard.getUser();
+
+      if (!token || !currentUser) {
+        window.location.href = '/auth?mode=login';
+        return;
+      }
+
+      // Populate User details
+      function renderUserHeader(u) {
+        document.getElementById('user-name-display').innerText = u.name;
+        document.getElementById('farmer-name-heading').innerText = u.name;
+        document.getElementById('user-plan-display').innerText = `${u.plan_tier} Plan`;
+        document.getElementById('primary-crop-display').innerText = u.primary_crop || 'Tomato';
+        document.getElementById('user-location-badge').innerText = `📍 ${u.location || 'Local Farm'}`;
+        const limit = u.plan_tier === 'FPO' ? 200 : u.plan_tier === 'Active' ? 50 : 5;
+        document.getElementById('quota-text').innerText = `${u.scans_used_this_month} / ${limit} scans used`;
+      }
+      renderUserHeader(currentUser);
+
+      // Refresh current user info from server
+      try {
+        const me = await FarmGuard.api('/api/auth/me');
+        currentUser = me;
+        FarmGuard.setAuth(token, me);
+        renderUserHeader(me);
+      } catch (err) {
+        console.warn('Could not refresh me:', err);
+      }
+
+      // Logout handler
+      document.getElementById('logout-btn').addEventListener('click', () => FarmGuard.logout());
+
+      // Dashboard Tabs
+      const tabs = {
+        scan: { tab: document.getElementById('d-tab-scan'), sec: document.getElementById('section-scanner') },
+        voice: { tab: document.getElementById('d-tab-voice'), sec: document.getElementById('section-voice-assistant') },
+        crops: { tab: document.getElementById('d-tab-crops'), sec: document.getElementById('section-crops') },
+        history: { tab: document.getElementById('d-tab-history'), sec: document.getElementById('section-history') },
+        library: { tab: document.getElementById('d-tab-library'), sec: document.getElementById('section-library') },
+      };
+
+      function switchTab(target) {
+        Object.keys(tabs).forEach(k => {
+          if (k === target) {
+            tabs[k].tab.classList.add('active');
+            tabs[k].sec.style.display = 'block';
+          } else {
+            tabs[k].tab.classList.remove('active');
+            tabs[k].sec.style.display = 'none';
+          }
+        });
+        if (target === 'voice') initVoiceAssistant();
+        if (target === 'crops') loadCrops();
+        if (target === 'history') loadScans();
+        if (target === 'library') loadDiseaseLibrary();
+      }
+
+      tabs.scan.tab.addEventListener('click', () => switchTab('scan'));
+      tabs.voice.tab.addEventListener('click', () => switchTab('voice'));
+      tabs.crops.tab.addEventListener('click', () => switchTab('crops'));
+      tabs.history.tab.addEventListener('click', () => switchTab('history'));
+      tabs.library.tab.addEventListener('click', () => switchTab('library'));
+
+      const floatingVoiceBtn = document.getElementById('floating-voice-btn');
+      if (floatingVoiceBtn) {
+        floatingVoiceBtn.addEventListener('click', () => {
+          switchTab('voice');
+          window.scrollTo({ top: 100, behavior: 'smooth' });
+        });
+      }
+
+      // Modals
+      const addCropModal = document.getElementById('add-crop-modal');
+      const upgradeModal = document.getElementById('upgrade-modal');
+
+      document.getElementById('open-add-crop-btn').addEventListener('click', () => { addCropModal.style.display = 'flex'; });
+      document.getElementById('upgrade-plan-btn').addEventListener('click', () => { upgradeModal.style.display = 'flex'; });
+      document.getElementById('quota-display').addEventListener('click', () => { upgradeModal.style.display = 'flex'; });
+
+      document.querySelectorAll('.close-modal-btn').forEach(b => {
+        b.addEventListener('click', () => {
+          addCropModal.style.display = 'none';
+          upgradeModal.style.display = 'none';
+        });
+      });
+
+      // Upgrade Plan Action
+      document.querySelectorAll('.upgrade-to-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const plan = e.target.getAttribute('data-plan');
+          try {
+            const updated = await FarmGuard.api('/api/subscription/upgrade', {
+              method: 'POST',
+              body: JSON.stringify({ plan_tier: plan })
+            });
+            currentUser = updated;
+            FarmGuard.setAuth(token, updated);
+            renderUserHeader(updated);
+            FarmGuard.showToast(`Plan updated to ${plan}!`, 'success');
+            upgradeModal.style.display = 'none';
+          } catch (err) {
+            FarmGuard.showToast(err.message, 'error');
+          }
+        });
+      });
+
+      // Sample Pills logic
+      let selectedSampleUrl = '/static/assets/hero-crop.jpg';
+      let selectedBase64 = null;
+
+      const samplePills = document.querySelectorAll('.sample-pill');
+      samplePills.forEach(pill => {
+        pill.addEventListener('click', () => {
+          samplePills.forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+
+          const crop = pill.getAttribute('data-crop');
+          const part = pill.getAttribute('data-part');
+          const obs = pill.getAttribute('data-obs');
+          const img = pill.getAttribute('data-img');
+
+          document.getElementById('scan-crop').value = crop;
+          document.getElementById('scan-part').value = part;
+          document.getElementById('scan-observations').value = obs;
+          selectedSampleUrl = img;
+          selectedBase64 = null;
+
+          document.getElementById('dropzone-placeholder').style.display = 'none';
+          const prev = document.getElementById('dropzone-preview');
+          prev.style.display = 'block';
+          document.getElementById('preview-img').src = img;
+          document.getElementById('preview-source-badge').innerText = '🍅 Sample Leaf';
+        });
+      });
+
+      // Dropzone & File Inputs
+      const dropzone = document.getElementById('dropzone');
+      const fileInput = document.getElementById('scan-file-input');
+      const cameraInput = document.getElementById('scan-camera-input');
+      const btnOpenCamera = document.getElementById('btn-open-camera');
+      const btnBrowseFile = document.getElementById('btn-browse-file');
+      const btnChangePhoto = document.getElementById('btn-change-photo');
+      const btnClearPhoto = document.getElementById('btn-clear-photo');
+
+      // Clicking browse triggers file dialog
+      btnBrowseFile.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput.click();
+      });
+
+      // Dropzone click handler (only when clicking empty placeholder, avoid child button conflicts)
+      dropzone.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        if (document.getElementById('dropzone-placeholder').style.display !== 'none') {
+          openCameraModal();
+        }
+      });
+
+      dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+      dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          handleFileSelection(e.dataTransfer.files[0], '📁 Uploaded Image');
+        }
+      });
+
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files && fileInput.files[0]) {
+          handleFileSelection(fileInput.files[0], '📁 Uploaded Image');
+        }
+      });
+
+      cameraInput.addEventListener('change', () => {
+        if (cameraInput.files && cameraInput.files[0]) {
+          handleFileSelection(cameraInput.files[0], '📷 Live Camera Photo');
+        }
+      });
+
+      function handleFileSelection(file, badgeText = '📁 Uploaded Image') {
+        samplePills.forEach(p => p.classList.remove('active'));
+        selectedSampleUrl = null;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          selectedBase64 = e.target.result;
+          document.getElementById('dropzone-placeholder').style.display = 'none';
+          const prev = document.getElementById('dropzone-preview');
+          prev.style.display = 'block';
+          document.getElementById('preview-img').src = e.target.result;
+          document.getElementById('preview-source-badge').innerText = badgeText;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // Clear photo
+      btnClearPhoto.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectedBase64 = null;
+        selectedSampleUrl = null;
+        fileInput.value = '';
+        cameraInput.value = '';
+        samplePills.forEach(p => p.classList.remove('active'));
+        document.getElementById('dropzone-preview').style.display = 'none';
+        document.getElementById('dropzone-placeholder').style.display = 'block';
+      });
+
+      // Change / Retake photo button
+      btnChangePhoto.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openCameraModal();
+      });
+
+      // ==================== LIVE CAMERA LOGIC ====================
+      let activeCameraStream = null;
+      let currentFacingMode = 'environment'; // default rear camera for scanning plants
+      let capturedSnapshotData = null;
+      let cameraTrack = null;
+      let torchActive = false;
+
+      const cameraModal = document.getElementById('camera-modal');
+      const cameraVideo = document.getElementById('camera-video');
+      const cameraCanvas = document.getElementById('camera-canvas');
+      const cameraFallback = document.getElementById('camera-fallback');
+      const cameraReticle = document.getElementById('camera-reticle');
+      const cameraLiveControls = document.getElementById('camera-live-controls');
+      const cameraSnapshotReview = document.getElementById('camera-snapshot-review');
+      const cameraFlipBtn = document.getElementById('camera-flip-btn');
+      const cameraTorchBtn = document.getElementById('camera-torch-btn');
+      const cameraShutterBtn = document.getElementById('camera-shutter-btn');
+      const cameraRetakeBtn = document.getElementById('camera-retake-btn');
+      const cameraUseBtn = document.getElementById('camera-use-btn');
+      const cameraUseAnalyzeBtn = document.getElementById('camera-use-analyze-btn');
+      const cameraModalCloseBtn = document.getElementById('camera-modal-close-btn');
+      const cameraNativeFallbackBtn = document.getElementById('camera-native-fallback-btn');
+      const shutterFlash = document.getElementById('shutter-flash');
+
+      btnOpenCamera.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openCameraModal();
+      });
+
+      async function openCameraModal() {
+        cameraModal.style.display = 'flex';
+        cameraFallback.style.display = 'none';
+        cameraReticle.style.display = 'flex';
+        cameraLiveControls.style.display = 'block';
+        cameraSnapshotReview.style.display = 'none';
+        capturedSnapshotData = null;
+        await startCameraStream(currentFacingMode);
+      }
+
+      function closeCameraModal() {
+        stopCameraStream();
+        cameraModal.style.display = 'none';
+      }
+
+      cameraModalCloseBtn.addEventListener('click', closeCameraModal);
+
+      // Stop camera if user clicks modal backdrop
+      cameraModal.addEventListener('click', (e) => {
+        if (e.target === cameraModal) closeCameraModal();
+      });
+
+      async function startCameraStream(facingMode) {
+        stopCameraStream();
+        cameraFallback.style.display = 'none';
+        document.getElementById('camera-status-text').innerText = 'CONNECTING...';
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          showCameraError('Direct in-browser camera access is not supported by your browser or requires HTTPS.');
+          return;
+        }
+
+        try {
+          const constraints = {
+            video: {
+              facingMode: { ideal: facingMode },
+              width: { ideal: 1920, min: 640 },
+              height: { ideal: 1080, min: 480 }
+            },
+            audio: false
+          };
+
+          activeCameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+          cameraVideo.srcObject = activeCameraStream;
+          await cameraVideo.play();
+
+          document.getElementById('camera-status-text').innerText = (facingMode === 'environment') ? 'REAR CAMERA (FIELD)' : 'FRONT CAMERA';
+
+          // Detect torch capability
+          cameraTrack = activeCameraStream.getVideoTracks()[0];
+          if (cameraTrack) {
+            const caps = cameraTrack.getCapabilities ? cameraTrack.getCapabilities() : {};
+            if (caps.torch) {
+              cameraTorchBtn.style.display = 'inline-flex';
+              torchActive = false;
+              cameraTorchBtn.innerText = '🔦 Torch';
+            } else {
+              cameraTorchBtn.style.display = 'none';
+            }
+          }
+        } catch (err) {
+          console.warn('Camera stream initial constraint error:', err);
+          // Fallback to any available video stream without strict facingMode
+          try {
+            activeCameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            cameraVideo.srcObject = activeCameraStream;
+            await cameraVideo.play();
+            document.getElementById('camera-status-text').innerText = 'LIVE CAMERA';
+          } catch (fallbackErr) {
+            console.error('All camera initialization attempts failed:', fallbackErr);
+            showCameraError('Camera access denied or device has no accessible camera: ' + (fallbackErr.message || err.message));
+          }
+        }
+      }
+
+      function stopCameraStream() {
+        if (activeCameraStream) {
+          activeCameraStream.getTracks().forEach(t => t.stop());
+          activeCameraStream = null;
+        }
+        if (cameraVideo) {
+          cameraVideo.srcObject = null;
+        }
+        cameraTrack = null;
+        torchActive = false;
+      }
+
+      function showCameraError(msg) {
+        cameraFallback.style.display = 'flex';
+        document.getElementById('camera-error-msg').innerText = msg;
+        document.getElementById('camera-status-text').innerText = 'OFFLINE';
+      }
+
+      // Flip between front and rear cameras
+      cameraFlipBtn.addEventListener('click', async () => {
+        currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
+        await startCameraStream(currentFacingMode);
+      });
+
+      // Torch toggle
+      cameraTorchBtn.addEventListener('click', async () => {
+        if (!cameraTrack) return;
+        try {
+          torchActive = !torchActive;
+          await cameraTrack.applyConstraints({ advanced: [{ torch: torchActive }] });
+          cameraTorchBtn.innerText = torchActive ? '💡 Torch On' : '🔦 Torch';
+        } catch (err) {
+          console.warn('Torch error:', err);
+        }
+      });
+
+      // Mobile native camera fallback
+      cameraNativeFallbackBtn.addEventListener('click', () => {
+        closeCameraModal();
+        cameraInput.click();
+      });
+
+      // Capture Snapshot
+      function captureSnapshot() {
+        if (!cameraVideo.videoWidth || !cameraVideo.videoHeight) {
+          FarmGuard.showToast('Camera video stream is not ready yet.', 'error');
+          return;
+        }
+
+        // Shutter flash effect
+        shutterFlash.style.opacity = '0.9';
+        setTimeout(() => { shutterFlash.style.opacity = '0'; }, 180);
+
+        // Haptic pulse on mobile devices
+        if (navigator.vibrate) navigator.vibrate([40]);
+
+        // Draw video frame to canvas at full resolution
+        cameraCanvas.width = cameraVideo.videoWidth;
+        cameraCanvas.height = cameraVideo.videoHeight;
+        const ctx = cameraCanvas.getContext('2d');
+        ctx.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+        capturedSnapshotData = cameraCanvas.toDataURL('image/jpeg', 0.92);
+
+        // Freeze video & switch to review mode
+        cameraVideo.pause();
+        cameraReticle.style.display = 'none';
+        cameraLiveControls.style.display = 'none';
+        cameraSnapshotReview.style.display = 'block';
+      }
+
+      cameraShutterBtn.addEventListener('click', captureSnapshot);
+
+      // Retake Photo
+      cameraRetakeBtn.addEventListener('click', () => {
+        capturedSnapshotData = null;
+        cameraSnapshotReview.style.display = 'none';
+        cameraReticle.style.display = 'flex';
+        cameraLiveControls.style.display = 'block';
+        cameraVideo.play();
+      });
+
+      // Accept and use captured photo
+      function applyCapturedPhoto(andAnalyze = false) {
+        if (!capturedSnapshotData) return;
+        selectedBase64 = capturedSnapshotData;
+        selectedSampleUrl = null;
+        samplePills.forEach(p => p.classList.remove('active'));
+
+        document.getElementById('dropzone-placeholder').style.display = 'none';
+        const prev = document.getElementById('dropzone-preview');
+        prev.style.display = 'block';
+        document.getElementById('preview-img').src = capturedSnapshotData;
+        document.getElementById('preview-source-badge').innerText = '📷 Live Camera Photo';
+
+        closeCameraModal();
+        FarmGuard.showToast('Live photo captured successfully!', 'success');
+
+        if (andAnalyze) {
+          // Trigger scan submission immediately
+          scannerForm.requestSubmit ? scannerForm.requestSubmit() : scannerForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+      }
+
+      cameraUseBtn.addEventListener('click', () => applyCapturedPhoto(false));
+      cameraUseAnalyzeBtn.addEventListener('click', () => applyCapturedPhoto(true));
+
+      // Scanner Form Submit
+      const scannerForm = document.getElementById('scanner-form');
+      const scanLoading = document.getElementById('scan-loading');
+      const diagEmpty = document.getElementById('diagnosis-empty');
+      const diagCard = document.getElementById('diagnosis-result-card');
+      let currentDiagnosisAudio = '';
+
+      scannerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        scanLoading.style.display = 'block';
+        diagCard.style.display = 'none';
+        diagEmpty.style.display = 'none';
+
+        const payload = {
+          crop_name: document.getElementById('scan-crop').value,
+          plant_part: document.getElementById('scan-part').value,
+          observations: document.getElementById('scan-observations').value,
+          language: document.getElementById('scan-language').value,
+          crop_id: document.getElementById('scan-link-crop').value ? parseInt(document.getElementById('scan-link-crop').value) : null,
+          sample_image_url: selectedSampleUrl,
+          image_base64: selectedBase64
+        };
+
+        try {
+          const res = await FarmGuard.api('/api/scans/analyze', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+
+          scanLoading.style.display = 'none';
+          diagCard.style.display = 'block';
+
+          // Render diagnosis
+          const diag = res.diagnosis;
+          const scan = res.scan;
+
+          document.getElementById('res-problem-name').innerText = `${diag.crop_name} — ${diag.problem_name}`;
+          document.getElementById('res-scientific-name').innerText = diag.scientific_name || '';
+          document.getElementById('res-problem-type').innerText = diag.problem_type;
+          document.getElementById('res-confidence').innerText = diag.confidence_pct;
+
+          const sevBadge = document.getElementById('res-severity-badge');
+          sevBadge.innerText = `${diag.severity} Severity`;
+          sevBadge.className = `badge ${diag.severity === 'Healthy' ? 'badge-healthy' : diag.severity in ['High', 'Critical'] ? 'badge-critical' : 'badge-warning'}`;
+
+          document.getElementById('res-summary').innerText = `"${diag.advisory_summary}"`;
+          currentDiagnosisAudio = diag.advisory_audio_text;
+
+          // Lists
+          document.getElementById('res-immediate-list').innerHTML = diag.immediate_actions.map(a => `<li>${a}</li>`).join('');
+          document.getElementById('res-organic-list').innerHTML = diag.organic_remedies.map(a => `<li>${a}</li>`).join('');
+          document.getElementById('res-chemical-list').innerHTML = diag.chemical_controls.map(a => `<li>${a}</li>`).join('');
+          document.getElementById('res-prevention-list').innerHTML = diag.prevention_tips.map(a => `<li>${a}</li>`).join('');
+
+          document.getElementById('res-report-link').href = `/api/scans/${scan.id}/report`;
+
+          // Update user scans
+          currentUser.scans_used_this_month = (currentUser.scans_used_this_month || 0) + 1;
+          renderUserHeader(currentUser);
+          loadKPIs();
+
+          FarmGuard.showToast(`Analysis complete: ${diag.problem_name} detected.`, 'success');
+        } catch (err) {
+          scanLoading.style.display = 'none';
+          diagEmpty.style.display = 'block';
+          FarmGuard.showToast(err.message, 'error');
+        }
+      });
+
+      // Audio narration buttons
+      const audioBtn = document.getElementById('res-audio-btn');
+      const stopAudioBtn = document.getElementById('res-stop-audio-btn');
+
+      audioBtn.addEventListener('click', () => {
+        if (currentDiagnosisAudio) {
+          FarmGuard.speakText(currentDiagnosisAudio, document.getElementById('scan-language').value);
+          stopAudioBtn.style.display = 'inline-block';
+        }
+      });
+
+      stopAudioBtn.addEventListener('click', () => {
+        FarmGuard.stopSpeech();
+        stopAudioBtn.style.display = 'none';
+      });
+
+      document.getElementById('res-scan-another-btn').addEventListener('click', () => {
+        diagCard.style.display = 'none';
+        diagEmpty.style.display = 'block';
+        document.getElementById('scan-observations').value = '';
+      });
+
+      document.getElementById('trigger-sample-btn').addEventListener('click', () => {
+        document.querySelector('.sample-pill').click();
+        document.getElementById('analyze-btn').click();
+      });
+
+      // --- CROPS SECTION ---
+      async function loadCrops() {
+        const grid = document.getElementById('crops-grid');
+        grid.innerHTML = '<div style="color:var(--text-muted);">Loading crop plots...</div>';
+        try {
+          const crops = await FarmGuard.api('/api/crops');
+          document.getElementById('crops-tab-badge').innerText = crops.length;
+          document.getElementById('kpi-crops-count').innerText = crops.length;
+
+          // Update Link selector in scanner form
+          const linkSel = document.getElementById('scan-link-crop');
+          linkSel.innerHTML = '<option value="">-- Unlinked / General Field Scan --</option>';
+          crops.forEach(c => {
+            linkSel.innerHTML += `<option value="${c.id}">${c.name} (${c.variety || c.location || 'Plot'})</option>`;
+          });
+
+          if (crops.length === 0) {
+            grid.innerHTML = `
+              <div class="card" style="grid-column: span 3; text-align:center; padding:3rem;">
+                <p style="color:var(--text-muted); margin-bottom:1rem;">No crops registered yet.</p>
+                <button class="btn btn-primary btn-sm" onclick="document.getElementById('open-add-crop-btn').click()">+ Add Your First Plot</button>
+              </div>`;
+            return;
+          }
+
+          grid.innerHTML = crops.map(c => `
+            <div class="card flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between" style="margin-bottom:0.75rem;">
+                  <span class="badge ${c.health_status === 'Healthy' ? 'badge-healthy' : c.health_status === 'Monitoring' ? 'badge-warning' : 'badge-critical'}">${c.health_status}</span>
+                  <span style="font-size:0.8rem; color:var(--text-subtle);">${c.area_acres} Acres</span>
+                </div>
+                <h3 style="font-size:1.25rem; margin-bottom:0.25rem;">${c.name}</h3>
+                <div style="font-size:0.875rem; color:var(--text-muted); margin-bottom:0.75rem;">
+                  Variety: <strong>${c.variety || 'Standard'}</strong> | Plot: ${c.location || 'Main'}
+                </div>
+                <p style="font-size:0.825rem; color:var(--text-muted); line-height:1.4; margin-bottom:1rem;">
+                  ${c.notes || 'Planted ' + (c.planting_date || 'this season')}
+                </p>
+              </div>
+
+              <div class="flex items-center justify-between" style="border-top:1px solid var(--border-color); padding-top:0.75rem; font-size:0.85rem;">
+                <span style="color:var(--text-subtle);">🔬 ${c.recent_scans_count} scans</span>
+                <button class="btn btn-outline btn-sm" onclick="quickScanCrop('${c.name}', ${c.id})">Scan Plot →</button>
+              </div>
+            </div>
+          `).join('');
+
+          loadKPIs(crops);
+        } catch (err) {
+          grid.innerHTML = `<div style="color:var(--critical);">${err.message}</div>`;
+        }
+      }
+
+      window.quickScanCrop = (cropName, cropId) => {
+        switchTab('scan');
+        document.getElementById('scan-crop').value = cropName;
+        document.getElementById('scan-link-crop').value = cropId;
+      };
+
+      // Add Crop Form Submit
+      document.getElementById('add-crop-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+          name: document.getElementById('new-crop-name').value,
+          variety: document.getElementById('new-crop-variety').value,
+          area_acres: parseFloat(document.getElementById('new-crop-area').value) || 1.0,
+          planting_date: document.getElementById('new-crop-date').value,
+          location: document.getElementById('new-crop-location').value,
+          health_status: document.getElementById('new-crop-health').value,
+          notes: document.getElementById('new-crop-notes').value
+        };
+
+        try {
+          await FarmGuard.api('/api/crops', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          FarmGuard.showToast('Crop plot added successfully!', 'success');
+          addCropModal.style.display = 'none';
+          document.getElementById('add-crop-form').reset();
+          loadCrops();
+        } catch (err) {
+          FarmGuard.showToast(err.message, 'error');
+        }
+      });
+
+      // --- SCAN HISTORY SECTION ---
+      async function loadScans() {
+        const list = document.getElementById('history-list');
+        const filter = document.getElementById('history-filter-status').value;
+        list.innerHTML = '<div style="color:var(--text-muted);">Loading scan history...</div>';
+
+        try {
+          const url = filter ? `/api/scans?status_filter=${filter}` : '/api/scans';
+          const scans = await FarmGuard.api(url);
+          document.getElementById('kpi-scans-count').innerText = scans.length;
+
+          if (scans.length === 0) {
+            list.innerHTML = `
+              <div class="card" style="text-align:center; padding:3rem;">
+                <p style="color:var(--text-muted);">No scan records found for this filter.</p>
+              </div>`;
+            return;
+          }
+
+          list.innerHTML = scans.map(s => {
+            const dateStr = new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            return `
+              <div class="card">
+                <div class="flex items-center justify-between" style="flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+                  <div class="flex items-center gap-3">
+                    <img src="${s.image_url}" style="width:50px; height:50px; object-fit:cover; border-radius:var(--radius-sm);">
+                    <div>
+                      <h4 style="font-size:1.1rem; color:var(--text-main);">${s.crop_name} — ${s.problem_name}</h4>
+                      <div style="font-size:0.8rem; color:var(--text-subtle);">Recorded: ${dateStr} · Confidence: <strong>${s.confidence_pct}%</strong></div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="badge ${s.severity === 'Healthy' ? 'badge-healthy' : s.severity in ['High', 'Critical'] ? 'badge-critical' : 'badge-warning'}">${s.severity}</span>
+                    <select onchange="updateScanStatus(${s.id}, this.value)" class="form-control" style="width:auto; font-size:0.8rem; padding:0.25rem 0.5rem;">
+                      <option value="Monitoring" ${s.status === 'Monitoring' ? 'selected' : ''}>Monitoring</option>
+                      <option value="Improving" ${s.status === 'Improving' ? 'selected' : ''}>Improving</option>
+                      <option value="Resolved" ${s.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style="background:var(--bg-muted); padding:0.75rem 1rem; border-radius:var(--radius-md); margin-bottom:0.75rem;">
+                  <div style="font-size:0.75rem; font-weight:700; color:var(--text-subtle); margin-bottom:0.25rem;">SYMPTOMS DETECTED:</div>
+                  <div style="font-size:0.85rem; color:var(--text-main);">${s.symptoms.slice(0, 2).join(' · ')}</div>
+                </div>
+
+                <!-- Notes Timeline -->
+                <div style="margin-bottom:0.75rem;">
+                  <div style="font-size:0.75rem; font-weight:700; color:var(--text-subtle); margin-bottom:0.5rem;">FIELD NOTES & PROGRESS:</div>
+                  ${s.notes.map(n => `<div class="timeline-note">${n}</div>`).join('')}
+                </div>
+
+                <!-- Add Note Form -->
+                <div class="flex gap-2" style="border-top:1px solid var(--border-color); padding-top:0.75rem;">
+                  <input type="text" id="note-input-${s.id}" class="form-control" placeholder="Add follow-up field note (e.g. Sprayed bio-agent)..." style="font-size:0.85rem;">
+                  <button class="btn btn-outline btn-sm" onclick="addNote(${s.id})">Add Note</button>
+                  <a href="/api/scans/${s.id}/report" target="_blank" class="btn btn-ghost btn-sm" title="Print Advisory">🖨️</a>
+                </div>
+              </div>
+            `;
+          }).join('');
+        } catch (err) {
+          list.innerHTML = `<div style="color:var(--critical);">${err.message}</div>`;
+        }
+      }
+
+      document.getElementById('history-filter-status').addEventListener('change', loadScans);
+
+      window.updateScanStatus = async (scanId, newStatus) => {
+        try {
+          await FarmGuard.api(`/api/scans/${scanId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status: newStatus })
+          });
+          FarmGuard.showToast(`Status updated to ${newStatus}`, 'success');
+          loadScans();
+          loadCrops();
+        } catch (err) {
+          FarmGuard.showToast(err.message, 'error');
+        }
+      };
+
+      window.addNote = async (scanId) => {
+        const input = document.getElementById(`note-input-${scanId}`);
+        const note = input.value.trim();
+        if (!note) return;
+        try {
+          await FarmGuard.api(`/api/scans/${scanId}/notes`, {
+            method: 'POST',
+            body: JSON.stringify({ note })
+          });
+          FarmGuard.showToast('Note added to field log.', 'success');
+          input.value = '';
+          loadScans();
+        } catch (err) {
+          FarmGuard.showToast(err.message, 'error');
+        }
+      };
+
+      // --- DISEASE ENCYCLOPEDIA ---
+      async function loadDiseaseLibrary() {
+        const grid = document.getElementById('disease-library-grid');
+        grid.innerHTML = '<div style="color:var(--text-muted);">Searching plant disease encyclopedia...</div>';
+
+        const crop = document.getElementById('lib-crop-filter').value;
+        const cat = document.getElementById('lib-category-filter').value;
+        const search = document.getElementById('lib-search-input').value;
+
+        const params = new URLSearchParams();
+        if (crop) params.append('crop', crop);
+        if (cat) params.append('category', cat);
+        if (search) params.append('search', search);
+
+        try {
+          const diseases = await FarmGuard.api(`/api/diseases?${params.toString()}`);
+          if (diseases.length === 0) {
+            grid.innerHTML = '<div class="card" style="grid-column: span 2; text-align:center;">No matching plant diseases found.</div>';
+            return;
+          }
+
+          grid.innerHTML = diseases.map(d => `
+            <div class="card">
+              <div class="flex items-center justify-between" style="margin-bottom:0.5rem;">
+                <span class="badge badge-info">${d.crop} · ${d.category}</span>
+                <span class="badge ${d.severity_level === 'Critical' ? 'badge-critical' : 'badge-warning'}">${d.severity_level}</span>
+              </div>
+              <h3 style="font-size:1.25rem; color:var(--text-main); margin-bottom:0.25rem;">${d.name}</h3>
+              <div style="font-size:0.85rem; font-style:italic; color:var(--text-muted); margin-bottom:0.75rem;">${d.scientific_name}</div>
+              <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.4; margin-bottom:1rem;">${d.description}</p>
+              
+              <div style="background:var(--bg-muted); padding:0.75rem; border-radius:var(--radius-sm); font-size:0.825rem; margin-bottom:0.75rem;">
+                <strong>Key Symptoms:</strong>
+                <ul style="padding-left:1rem; margin-top:0.25rem;">
+                  ${d.symptoms.slice(0, 2).map(s => `<li>${s}</li>`).join('')}
+                </ul>
+              </div>
+
+              <div style="background:var(--primary-light); padding:0.75rem; border-radius:var(--radius-sm); font-size:0.825rem;">
+                <strong style="color:var(--healthy-text);">Certified Bio / Organic Remedy:</strong>
+                <div style="color:var(--healthy-text); margin-top:0.25rem;">
+                  ${d.organic_controls[0] || 'Neem oil foliar spray (10,000 ppm)'}
+                </div>
+              </div>
+            </div>
+          `).join('');
+        } catch (err) {
+          grid.innerHTML = `<div style="color:var(--critical);">${err.message}</div>`;
+        }
+      }
+
+      document.getElementById('lib-crop-filter').addEventListener('change', loadDiseaseLibrary);
+      document.getElementById('lib-category-filter').addEventListener('change', loadDiseaseLibrary);
+      document.getElementById('lib-search-input').addEventListener('input', () => {
+        clearTimeout(window._searchTimer);
+        window._searchTimer = setTimeout(loadDiseaseLibrary, 350);
+      });
+
+      // KPI Aggregator
+      async function loadKPIs(crops) {
+        try {
+          const c = crops || await FarmGuard.api('/api/crops');
+          const s = await FarmGuard.api('/api/scans');
+          
+          document.getElementById('kpi-crops-count').innerText = c.length;
+          document.getElementById('kpi-scans-count').innerText = s.length;
+
+          const alerts = c.filter(x => x.health_status === 'Attention Required').length;
+          const healthy = c.filter(x => x.health_status === 'Healthy').length;
+          document.getElementById('kpi-alerts-count').innerText = alerts;
+          document.getElementById('kpi-healthy-count').innerText = healthy;
+        } catch (e) {
+          console.warn('KPI load error:', e);
+        }
+      }
+
+      // ==================== OBSERVATION VOICE DICTATION ====================
+      const btnDictateObs = document.getElementById('btn-dictate-observations');
+      const dictateIcon = document.getElementById('dictate-icon');
+      const dictateLabel = document.getElementById('dictate-label');
+      const dictateStatus = document.getElementById('dictate-status');
+      const scanObsInput = document.getElementById('scan-observations');
+      let obsRecognizer = null;
+      let isDictatingObs = false;
+      let currentDictationText = '';
+
+      if (btnDictateObs) {
+        btnDictateObs.addEventListener('click', () => {
+          if (isDictatingObs) {
+            stopDictating(true);
+            return;
+          }
+
+          if (!FarmGuard.isSpeechSupported()) {
+            FarmGuard.showToast('Speech recognition not supported in this browser. Please type symptoms.', 'warning');
+            return;
+          }
+
+          const lang = document.getElementById('scan-language').value;
+          currentDictationText = '';
+
+          obsRecognizer = FarmGuard.createSpeechRecognizer({
+            lang: lang,
+            onStart: () => {
+              isDictatingObs = true;
+              dictateIcon.innerText = '🔴';
+              dictateLabel.innerText = 'Listening... (बोलिए)';
+              dictateStatus.style.display = 'block';
+              dictateStatus.innerText = '🎙️ Listening... बोलिए';
+              btnDictateObs.classList.add('btn-primary');
+              btnDictateObs.classList.remove('btn-outline');
+            },
+            onResult: ({ final, interim }) => {
+              const transcript = final || interim;
+              if (transcript) {
+                currentDictationText = transcript;
+                dictateStatus.innerText = `🎙️ "${transcript}"`;
+              }
+              if (final && final.trim()) {
+                currentDictationText = final.trim();
+              }
+            },
+            onError: (err, friendlyMsg) => {
+              console.warn('Dictation error:', err);
+              dictateStatus.innerText = `⚠️ ${friendlyMsg || 'Microphone error.'}`;
+              stopDictating(true);
+            },
+            onEnd: () => {
+              stopDictating(true);
+            }
+          });
+
+          if (obsRecognizer) {
+            try {
+              obsRecognizer.start();
+            } catch (e) {
+              console.warn('Dictation start error:', e);
+              stopDictating(false);
+            }
+          }
+        });
+
+        function stopDictating(applyText = false) {
+          isDictatingObs = false;
+          dictateIcon.innerText = '🎙️';
+          dictateLabel.innerText = 'Speak Symptoms (बोलकर बताएं)';
+          btnDictateObs.classList.remove('btn-primary');
+          btnDictateObs.classList.add('btn-outline');
+
+          if (obsRecognizer) {
+            try { obsRecognizer.stop(); } catch (e) {}
+          }
+
+          if (applyText && currentDictationText.trim()) {
+            const existing = scanObsInput.value.trim();
+            scanObsInput.value = existing ? `${existing} ${currentDictationText.trim()}` : currentDictationText.trim();
+            dictateStatus.innerText = `✓ Added: "${currentDictationText.trim()}"`;
+            currentDictationText = '';
+          }
+
+          setTimeout(() => {
+            if (dictateStatus) dictateStatus.style.display = 'none';
+          }, 3500);
+        }
+      }
+
+      // ==================== KISAN VOICE AI ASSISTANT ====================
+      const DEFAULT_QUICK_PROMPTS = [
+        // Kannada Prompts
+        { category: "Tomato Blight", crop: "Tomato", prompt: "ಟೊಮೆಟೊ ಎಲೆಗಳ ಮೇಲೆ ಕಂದು ಕಲೆಗಳು ಕಾಣುತ್ತಿವೆ, ಏನು ಮಾಡಬೇಕು?", language: "Kannada" },
+        { category: "Cotton Pest", crop: "Cotton", prompt: "ಹತ್ತಿ ಬೆಳೆಯಲ್ಲಿ ಬಿಳಿ ನೊಣ ಮತ್ತು ರಸಹೀರುವ ಕೀಟಗಳ ನಿಯಂತ್ರಣ ಹೇಗೆ?", language: "Kannada" },
+        { category: "Chili Curl", crop: "Chili", prompt: "ಮೆಣಸಿನಕಾಯಿ ಎಲೆ ಮುದುರು ರೋಗಕ್ಕೆ ಸಾವಯವ ಪರಿಹಾರವೇನು?", language: "Kannada" },
+        { category: "Rice Blast", crop: "Rice", prompt: "ಭತ್ತದ ಬೆಂಕಿ ರೋಗ ತಡೆಯಲು ಯಾವ ಔಷಧ ಸಿಂಪಡಿಸಬೇಕು?", language: "Kannada" },
+        // English Prompts
+        { category: "Tomato Blight", crop: "Tomato", prompt: "My tomato leaves have brown concentric rings, what should I spray?", language: "English" },
+        { category: "Organic Pest", crop: "General", prompt: "How to prepare and use neem oil spray for leaf aphids?", language: "English" },
+        { category: "Cotton Pest", crop: "Cotton", prompt: "How to control whitefly and sucking pests in cotton organically?", language: "English" },
+        // Hindi Prompts
+        { category: "Tomato Disease", crop: "Tomato", prompt: "टमाटर के पत्तों पर भूरे गोल धब्बे दिख रहे हैं, क्या उपाय करें?", language: "Hindi" },
+        { category: "Cotton Pest", crop: "Cotton", prompt: "कपास में रस चूसने वाले कीट और माहू का जैविक छिड़काव क्या है?", language: "Hindi" },
+        { category: "Rain / Fungus", crop: "General", prompt: "बारिश के बाद फसलों में फफूंद रोकने के लिए क्या करें?", language: "Hindi" }
+      ];
+
+      const voiceMainMicBtn = document.getElementById('voice-main-mic-btn');
+      const voiceStatusHeading = document.getElementById('voice-status-heading');
+      const voiceStatusSub = document.getElementById('voice-status-sub');
+      const voiceTranscriptText = document.getElementById('voice-transcript-text');
+      const voiceSubmitSpeechBtn = document.getElementById('voice-submit-speech-btn');
+      const voiceChatFeed = document.getElementById('voice-chat-feed');
+      const voiceLangSelect = document.getElementById('voice-lang-select');
+      const voiceCropSelect = document.getElementById('voice-crop-select');
+      const voiceAutoReadoutChk = document.getElementById('voice-auto-readout-chk');
+      const voiceQuickPillsContainer = document.getElementById('voice-quick-pills-container');
+      const voiceTextFallbackForm = document.getElementById('voice-text-fallback-form');
+      const voiceTextInput = document.getElementById('voice-text-input');
+      const voiceClearChatBtn = document.getElementById('voice-clear-chat-btn');
+
+      let assistantRecognizer = null;
+      let isAssistantListening = false;
+      let conversationHistory = [];
+      let cachedPrompts = [...DEFAULT_QUICK_PROMPTS];
+      let currentCapturedSpeech = '';
+      let autoSubmitTimer = null;
+
+      async function initVoiceAssistant() {
+        renderQuickPrompts();
+        try {
+          const remotePrompts = await FarmGuard.api('/api/assistant/quick-prompts');
+          if (remotePrompts && remotePrompts.length > 0) {
+            cachedPrompts = remotePrompts;
+            renderQuickPrompts();
+          }
+        } catch (e) {
+          console.warn('Using default prompts:', e);
+        }
+      }
+
+      function renderQuickPrompts() {
+        if (!voiceQuickPillsContainer) return;
+        const currentLang = voiceLangSelect ? voiceLangSelect.value : 'English';
+        const filtered = cachedPrompts.filter(p => p.language.toLowerCase() === currentLang.toLowerCase());
+        const promptsToShow = filtered.length > 0 ? filtered : cachedPrompts.slice(0, 4);
+
+        voiceQuickPillsContainer.innerHTML = promptsToShow.map(p => `
+          <button type="button" class="btn btn-outline btn-sm voice-prompt-pill" style="font-size:0.8rem; border-radius:var(--radius-full); text-align:left; cursor:pointer;" data-prompt="${p.prompt}">
+            🗣️ "${p.prompt}"
+          </button>
+        `).join('');
+
+        voiceQuickPillsContainer.querySelectorAll('.voice-prompt-pill').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const q = btn.getAttribute('data-prompt');
+            handleVoiceQuery(q);
+          });
+        });
+      }
+
+      if (voiceLangSelect) {
+        voiceLangSelect.addEventListener('change', () => {
+          FarmGuard.stopSpeech();
+          renderQuickPrompts();
+          updateStatusForLang();
+        });
+      }
+
+      function updateStatusForLang() {
+        if (!voiceStatusHeading || !voiceTranscriptText) return;
+        const l = voiceLangSelect ? voiceLangSelect.value : 'English';
+        if (isAssistantListening) return;
+
+        const headingSub = document.getElementById('voice-status-sub');
+        const quickHeading = document.getElementById('voice-quick-heading');
+        const autoLabel = document.getElementById('voice-auto-readout-label');
+
+        if (l === 'Kannada') {
+          voiceStatusHeading.innerText = 'ಮೈಕ್ರೋಫೋನ್ ಒತ್ತಿ ಮಾತನಾಡಿ (Tap mic to speak)';
+          if (headingSub) headingSub.innerText = 'ಬೆಳೆ ರೋಗಗಳು, ಕೀಟ ಬಾಧೆ, ರಸಗೊಬ್ಬರ ಅಥವಾ ಸಾವಯವ ಔಷಧಗಳ ಬಗ್ಗೆ ಕೇಳಿ';
+          voiceTranscriptText.innerText = '"ಕೇಳಿಸಿಕೊಳ್ಳುತ್ತಿದ್ದೇವೆ... ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಕೇಳಿ"';
+          if (voiceSubmitSpeechBtn) voiceSubmitSpeechBtn.innerText = '⚡ ಕಿಸಾನ್ AI ಗೆ ಕೇಳಿ (Ask Kisan AI) →';
+          if (quickHeading) quickHeading.innerText = '⚡ ಮುಖ್ಯಾಂಶ ಪ್ರಶ್ನೆಗಳು (ಕೇಳಲು ಟ್ಯಾಪ್ ಮಾಡಿ / Tap to ask):';
+          if (autoLabel) autoLabel.innerText = '🔊 ಉತ್ತರವನ್ನು ಧ್ವನಿಯಲ್ಲಿ ಆಲಿಸಿ (Auto-speak answer)';
+        } else if (l === 'Hindi') {
+          voiceStatusHeading.innerText = 'माइक बटन दबाएं और बोलें (Tap mic to speak)';
+          if (headingSub) headingSub.innerText = 'टमाटर, कपास, धान, मिर्च या किसी भी फसल की बीमारी, खाद या जैविक उपाय पूछें';
+          voiceTranscriptText.innerText = '"सुन रहे हैं... जो पूछना चाहते हैं बोलिए"';
+          if (voiceSubmitSpeechBtn) voiceSubmitSpeechBtn.innerText = '⚡ Ask Kisan AI (यह सवाल पूछें) →';
+          if (quickHeading) quickHeading.innerText = '⚡ अक्सर पूछे जाने वाले सवाल (Tap to ask):';
+          if (autoLabel) autoLabel.innerText = '🔊 उत्तर को आवाज में स्वतः पढ़कर सुनाएं (Auto-speak answer)';
+        } else {
+          voiceStatusHeading.innerText = 'Tap microphone and speak your query';
+          if (headingSub) headingSub.innerText = 'Ask about crop diseases, pest infestations, bio-fertilizers, or remedies';
+          voiceTranscriptText.innerText = '"Listening... ask your farming question"';
+          if (voiceSubmitSpeechBtn) voiceSubmitSpeechBtn.innerText = '⚡ Ask Kisan AI →';
+          if (quickHeading) quickHeading.innerText = '⚡ Quick Spoken Questions (Tap to ask):';
+          if (autoLabel) autoLabel.innerText = '🔊 Auto-speak answer aloud';
+        }
+        if (voiceSubmitSpeechBtn) voiceSubmitSpeechBtn.style.display = 'none';
+      }
+
+      if (voiceMainMicBtn) {
+        voiceMainMicBtn.addEventListener('click', () => {
+          if (isAssistantListening) {
+            stopAssistantListening(true);
+            return;
+          }
+          startAssistantListening();
+        });
+      }
+
+      if (voiceSubmitSpeechBtn) {
+        voiceSubmitSpeechBtn.addEventListener('click', () => {
+          if (currentCapturedSpeech.trim()) {
+            const speechToSubmit = currentCapturedSpeech.trim();
+            stopAssistantListening(false);
+            handleVoiceQuery(speechToSubmit);
+          }
+        });
+      }
+
+      function startAssistantListening() {
+        FarmGuard.stopSpeech();
+        currentCapturedSpeech = '';
+        clearTimeout(autoSubmitTimer);
+
+        if (!FarmGuard.isSpeechSupported()) {
+          voiceStatusHeading.innerText = '⚠️ Speech Recognition Not Supported';
+          voiceTranscriptText.innerText = 'Use Google Chrome, Microsoft Edge, or Safari, or click any ready-made question below!';
+          FarmGuard.showToast('Speech recognition not supported in this browser. Please click a prompt or type below.', 'warning');
+          return;
+        }
+
+        const lang = voiceLangSelect ? voiceLangSelect.value : 'English';
+        
+        assistantRecognizer = FarmGuard.createSpeechRecognizer({
+          lang: lang,
+          onStart: () => {
+            isAssistantListening = true;
+            voiceMainMicBtn.style.background = '#dc2626';
+            voiceMainMicBtn.style.boxShadow = '0 0 35px rgba(220, 38, 38, 0.7)';
+            voiceMainMicBtn.style.transform = 'scale(1.08)';
+            if (lang === 'Kannada') {
+              voiceStatusHeading.innerText = '🔴 ಗಮನವಿಟ್ಟು ಕೇಳುತ್ತಿದ್ದೇವೆ... ಈಗ ಮಾತನಾಡಿ';
+            } else if (lang === 'Hindi') {
+              voiceStatusHeading.innerText = '🔴 ध्यान से सुन रहे हैं... बोलिए';
+            } else {
+              voiceStatusHeading.innerText = '🔴 Listening carefully... Speak now';
+            }
+            voiceTranscriptText.innerText = '...';
+            if (voiceSubmitSpeechBtn) voiceSubmitSpeechBtn.style.display = 'none';
+          },
+          onResult: ({ final, interim }) => {
+            const transcript = final || interim;
+            if (transcript) {
+              currentCapturedSpeech = transcript;
+              voiceTranscriptText.innerText = `"${transcript}"`;
+              if (voiceSubmitSpeechBtn) voiceSubmitSpeechBtn.style.display = 'inline-flex';
+            }
+            if (final && final.trim().length > 2) {
+              currentCapturedSpeech = final.trim();
+              clearTimeout(autoSubmitTimer);
+              autoSubmitTimer = setTimeout(() => {
+                if (isAssistantListening && currentCapturedSpeech) {
+                  const speechToSubmit = currentCapturedSpeech;
+                  stopAssistantListening(false);
+                  handleVoiceQuery(speechToSubmit);
+                }
+              }, 1200);
+            }
+          },
+          onError: (err, friendlyMsg) => {
+            console.warn('Voice assistant speech error:', err);
+            if (err.error === 'no-speech') {
+              if (currentCapturedSpeech.trim().length > 1) {
+                const speechToSubmit = currentCapturedSpeech.trim();
+                stopAssistantListening(false);
+                handleVoiceQuery(speechToSubmit);
+                return;
+              }
+              if (lang === 'Kannada') {
+                voiceStatusHeading.innerText = 'ಮೈಕ್ ಒತ್ತಿ ಮತ್ತೆ ಮಾತನಾಡಿ';
+                voiceTranscriptText.innerText = 'ಧ್ವನಿ ಕೇಳಿಸಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ಪಷ್ಟವಾಗಿ ಮಾತನಾಡಿ.';
+              } else if (lang === 'Hindi') {
+                voiceStatusHeading.innerText = 'माइक दबाकर फिर से बोलें';
+                voiceTranscriptText.innerText = 'आवाज नहीं सुनाई दी। कृपया स्पष्ट बोलें।';
+              } else {
+                voiceStatusHeading.innerText = 'Tap mic and speak again';
+                voiceTranscriptText.innerText = friendlyMsg || 'No speech heard. Please speak clearly.';
+              }
+            } else {
+              voiceStatusHeading.innerText = '⚠️ Microphone Access Notice';
+              voiceTranscriptText.innerText = friendlyMsg || 'Please allow microphone access or click a prompt below.';
+            }
+            stopAssistantListening(false);
+          },
+          onEnd: () => {
+            if (isAssistantListening) {
+              if (currentCapturedSpeech.trim().length > 2) {
+                const speechToSubmit = currentCapturedSpeech.trim();
+                stopAssistantListening(false);
+                handleVoiceQuery(speechToSubmit);
+              } else {
+                stopAssistantListening(false);
+              }
+            }
+          }
+        });
+
+        if (assistantRecognizer) {
+          try {
+            assistantRecognizer.start();
+          } catch (err) {
+            console.warn('Speech recognizer start error:', err);
+            stopAssistantListening(false);
+          }
+        }
+      }
+
+      function stopAssistantListening(submitIfHasText = false) {
+        clearTimeout(autoSubmitTimer);
+        isAssistantListening = false;
+        if (voiceMainMicBtn) {
+          voiceMainMicBtn.style.background = '#16a34a';
+          voiceMainMicBtn.style.boxShadow = '0 0 28px rgba(34, 197, 94, 0.45)';
+          voiceMainMicBtn.style.transform = 'scale(1)';
+        }
+        if (assistantRecognizer) {
+          try { assistantRecognizer.stop(); } catch (e) {}
+        }
+        if (voiceSubmitSpeechBtn) voiceSubmitSpeechBtn.style.display = 'none';
+
+        if (submitIfHasText && currentCapturedSpeech.trim().length > 1) {
+          const speechToSubmit = currentCapturedSpeech.trim();
+          currentCapturedSpeech = '';
+          updateStatusForLang();
+          handleVoiceQuery(speechToSubmit);
+        } else {
+          updateStatusForLang();
+        }
+      }
+
+      async function handleVoiceQuery(queryText) {
+        if (!queryText || !queryText.trim()) return;
+
+        const chosenLang = voiceLangSelect ? voiceLangSelect.value : 'English';
+
+        // Append user message to conversation feed
+        appendUserMessage(queryText, chosenLang);
+
+        // Loading indicator
+        const loadingId = 'loading-' + Date.now();
+        const loadingEl = document.createElement('div');
+        loadingEl.id = loadingId;
+        loadingEl.className = 'card';
+        loadingEl.style.cssText = 'background:var(--bg-muted); border-left:4px solid var(--warning); padding:1rem;';
+        
+        let loadingMsg = 'Kisan Voice AI is analyzing your crop query...';
+        if (chosenLang === 'Kannada') {
+          loadingMsg = 'ಕಿಸಾನ್ ಧ್ವನಿ AI ಕೃಷಿ ಸಲಹೆಯನ್ನು ಸಿದ್ಧಪಡಿಸುತ್ತಿದೆ (Formulating Advisory)...';
+        } else if (chosenLang === 'Hindi') {
+          loadingMsg = 'किसान वाणी AI सलाह तैयार कर रहा है (Formulating Advisory)...';
+        }
+
+        loadingEl.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span style="animation:pulse 1s infinite;">🌱 ⏳</span>
+            <span style="font-weight:600; color:var(--text-muted);">${loadingMsg}</span>
+          </div>
+        `;
+        if (voiceChatFeed) {
+          voiceChatFeed.appendChild(loadingEl);
+          voiceChatFeed.scrollTop = voiceChatFeed.scrollHeight;
+        }
+
+        const payload = {
+          message: queryText,
+          language: chosenLang,
+          crop_context: voiceCropSelect && voiceCropSelect.value ? voiceCropSelect.value : null,
+          history: conversationHistory.slice(-4)
+        };
+
+        try {
+          const res = await FarmGuard.api('/api/assistant/chat', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+
+          const loadingElem = document.getElementById(loadingId);
+          if (loadingElem) loadingElem.remove();
+
+          // Append assistant message
+          appendAssistantResponse(res);
+
+          // Update history
+          conversationHistory.push({ role: 'user', content: queryText });
+          conversationHistory.push({ role: 'assistant', content: res.reply });
+
+          // Auto Readout if checkbox is checked
+          if (voiceAutoReadoutChk && voiceAutoReadoutChk.checked && res.audio_text) {
+            FarmGuard.speakText(res.audio_text, res.language || chosenLang);
+          }
+        } catch (err) {
+          const loadingElem = document.getElementById(loadingId);
+          if (loadingElem) loadingElem.remove();
+          FarmGuard.showToast(err.message, 'error');
+        }
+      }
+
+      function appendUserMessage(text, lang = 'English') {
+        if (!voiceChatFeed) return;
+        const msgEl = document.createElement('div');
+        msgEl.className = 'card';
+        msgEl.style.cssText = 'background:var(--primary-light); border-left:4px solid var(--primary); padding:0.85rem 1.25rem; align-self:flex-end; max-width:85%; margin-bottom: 0.5rem;';
+        
+        let youLabel = '🗣️ You:';
+        if (lang === 'Kannada') youLabel = '🗣️ ನೀವು (You):';
+        else if (lang === 'Hindi') youLabel = '🗣️ आप (You):';
+
+        msgEl.innerHTML = `
+          <div style="font-size:0.75rem; font-weight:700; color:var(--healthy-text); margin-bottom:0.25rem;">${youLabel}</div>
+          <div style="font-size:0.95rem; font-weight:600; color:var(--healthy-text); line-height:1.4;">${text}</div>
+        `;
+        voiceChatFeed.appendChild(msgEl);
+        voiceChatFeed.scrollTop = voiceChatFeed.scrollHeight;
+      }
+
+      function appendAssistantResponse(res) {
+        if (!voiceChatFeed) return;
+        const msgEl = document.createElement('div');
+        msgEl.className = 'card';
+        msgEl.style.cssText = 'background:var(--bg-card); border-left:4px solid var(--primary); padding:1.25rem; box-shadow:var(--shadow-sm); margin-bottom: 0.5rem;';
+
+        // Format bold and markdown lines
+        const formattedBody = res.reply
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n\n/g, '<br><br>')
+          .replace(/\n- /g, '<br>• ');
+
+        const audioBtnId = 'audio-play-' + Date.now();
+        const stopBtnId = 'audio-stop-' + Date.now();
+
+        let listenAudioLabel = '🔊 Listen Audio';
+        let followUpLabel = 'Suggested Follow-up Questions:';
+        if (res.language === 'Kannada') {
+          listenAudioLabel = '🔊 ಧ್ವನಿಯಲ್ಲಿ ಆಲಿಸಿ (Listen Audio)';
+          followUpLabel = 'ಸಂಬಂಧಿತ ಪ್ರಶ್ನೆಗಳು (Follow-up):';
+        } else if (res.language === 'Hindi') {
+          listenAudioLabel = '🔊 आवाज में सुनें (Listen Audio)';
+          followUpLabel = 'सम्बंधित सवाल (Follow-up):';
+        }
+
+        msgEl.innerHTML = `
+          <div class="flex items-center justify-between" style="margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+            <div class="flex items-center gap-2">
+              <span style="font-size:1.2rem;">🌱</span>
+              <strong style="color:var(--text-main);">Kisan AI Advisor (${res.detected_crop || 'Farm Advisory'})</strong>
+              ${res.detected_problem ? `<span class="badge badge-warning" style="font-size:0.75rem;">${res.detected_problem}</span>` : ''}
+              <span class="badge badge-info" style="font-size:0.72rem;">${res.language}</span>
+            </div>
+            <div class="flex gap-2">
+              <button type="button" id="${audioBtnId}" class="btn btn-audio btn-sm" style="font-size:0.8rem; font-weight:700;">
+                ${listenAudioLabel}
+              </button>
+              <button type="button" id="${stopBtnId}" class="btn btn-outline btn-sm" style="display:none; font-size:0.8rem;">
+                ⏹️ Stop
+              </button>
+            </div>
+          </div>
+
+          <div style="font-size:0.92rem; line-height:1.6; color:var(--text-main); margin-bottom:1rem;">
+            ${formattedBody}
+          </div>
+
+          ${res.follow_ups && res.follow_ups.length > 0 ? `
+            <div style="border-top:1px solid var(--border-color); padding-top:0.75rem;">
+              <div style="font-size:0.75rem; font-weight:700; color:var(--text-subtle); margin-bottom:0.4rem; text-transform:uppercase;">${followUpLabel}</div>
+              <div class="flex gap-2" style="flex-wrap:wrap;">
+                ${res.follow_ups.map(f => `
+                  <button type="button" class="btn btn-outline btn-sm dynamic-followup-pill" style="font-size:0.78rem; padding:0.25rem 0.75rem; cursor:pointer;" data-prompt="${f}">
+                    👉 ${f}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        `;
+
+        voiceChatFeed.appendChild(msgEl);
+        voiceChatFeed.scrollTop = voiceChatFeed.scrollHeight;
+
+        const playBtn = document.getElementById(audioBtnId);
+        const stopBtn = document.getElementById(stopBtnId);
+
+        if (playBtn && stopBtn) {
+          playBtn.addEventListener('click', () => {
+            FarmGuard.speakText(res.audio_text, res.language, () => {
+              playBtn.style.display = 'inline-flex';
+              stopBtn.style.display = 'none';
+            });
+            playBtn.style.display = 'none';
+            stopBtn.style.display = 'inline-flex';
+          });
+
+          stopBtn.addEventListener('click', () => {
+            FarmGuard.stopSpeech();
+            stopBtn.style.display = 'none';
+            playBtn.style.display = 'inline-flex';
+          });
+        }
+
+        msgEl.querySelectorAll('.dynamic-followup-pill').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const p = btn.getAttribute('data-prompt');
+            handleVoiceQuery(p);
+          });
+        });
+      }
+
+      // Text input fallback submit
+      if (voiceTextFallbackForm) {
+        voiceTextFallbackForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const val = voiceTextInput.value.trim();
+          if (!val) return;
+          voiceTextInput.value = '';
+          handleVoiceQuery(val);
+        });
+      }
+
+      // Clear conversation
+      if (voiceClearChatBtn) {
+        voiceClearChatBtn.addEventListener('click', () => {
+          conversationHistory = [];
+          if (voiceChatFeed) {
+            voiceChatFeed.innerHTML = `
+              <div class="card" style="background: var(--bg-muted); border-left: 4px solid var(--primary); padding: 1rem 1.25rem;">
+                <div class="flex items-center justify-between" style="margin-bottom: 0.5rem;">
+                  <span style="font-weight: 700; color: var(--primary);">🌱 Kisan Voice AI Advisor</span>
+                  <span class="badge badge-info" style="font-size: 0.72rem;">Ready</span>
+                </div>
+                <p style="font-size: 0.92rem; line-height: 1.5; color: var(--text-main);">
+                  बातचीत रीसेट हो गई है। आप माइक दबाकर नया सवाल पूछ सकते हैं।
+                </p>
+              </div>
+            `;
+          }
+          FarmGuard.stopSpeech();
+        });
+      }
+
+      // Initial data load
+      loadCrops();
+      initVoiceAssistant();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Jobs - LocalServe</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .chat-messages {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .chat-msg {
+      max-width: 80%;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .chat-msg-mine {
+      align-self: flex-end;
+      background: var(--primary);
+      color: white;
+      border-bottom-right-radius: 2px;
+    }
+    .chat-msg-theirs {
+      align-self: flex-start;
+      background: white;
+      border: 1px solid var(--surface-border);
+      color: var(--text-main);
+      border-bottom-left-radius: 2px;
+    }
+    .chat-meta {
+      font-size: 0.7rem;
+      opacity: 0.8;
+      margin-top: 2px;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1>Provider Jobs & Workflow</h1>
+        <p class="subtitle">Accept bookings, advance job statuses in real-time, share live location, and chat with customers</p>
+      </div>
+      <div>
+        <button class="btn btn-secondary btn-sm" onclick="loadJobs()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+      <button class="btn btn-secondary btn-sm tab-btn active" id="tab-active" onclick="filterJobs('active')">
+        Active & Incoming (<span id="count-active">0</span>)
+      </button>
+      <button class="btn btn-secondary btn-sm tab-btn" id="tab-completed" onclick="filterJobs('completed')">
+        Completed (<span id="count-completed">0</span>)
+      </button>
+      <button class="btn btn-secondary btn-sm tab-btn" id="tab-all" onclick="filterJobs('all')">
+        All Jobs (<span id="count-all">0</span>)
+      </button>
+    </div>
+
+    <div id="jobs-container">
+      <div style="text-align: center; padding: 3rem;">Loading jobs...</div>
+    </div>
+  </main>
+
+  <!-- Complete Job & Invoice Modal -->
+  <div id="complete-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Complete Job & Issue Invoice</h3>
+        <button class="close-btn" onclick="closeCompleteModal()">&times;</button>
+      </div>
+
+      <div id="complete-alert"></div>
+
+      <form id="complete-form">
+        <input type="hidden" id="complete-booking-id">
+
+        <p class="subtitle" style="margin-bottom: 1rem;">
+          Provide the itemized breakdown for this job. Approved additional charges will automatically be included.
+        </p>
+
+        <div id="complete-approved-charges-box" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-sm); padding: 0.75rem; margin-bottom: 1rem;">
+          <div style="font-weight: 700; color: #065f46; font-size: 0.85rem;">Approved Additional Charges:</div>
+          <div id="complete-approved-charges-list" style="font-size: 0.85rem; color: #047857; margin-top: 0.25rem;"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="labour-charge">Labour / Workmanship Charge (₹) *</label>
+          <input type="number" id="labour-charge" class="form-control" value="350" min="0" step="10" required oninput="calcInvoiceTotal()">
+        </div>
+
+        <div class="form-group">
+          <label for="parts-charge">Parts & Replacement Materials (₹)</label>
+          <input type="number" id="parts-charge" class="form-control" value="0" min="0" step="10" oninput="calcInvoiceTotal()">
+        </div>
+
+        <div class="form-group">
+          <label for="service-charge">Platform / Convenience Fee (₹)</label>
+          <input type="number" id="service-charge" class="form-control" value="50" min="0" step="5" required oninput="calcInvoiceTotal()">
+        </div>
+
+        <div class="form-group">
+          <label for="tax-charge">GST / Tax (18%) (₹)</label>
+          <input type="number" id="tax-charge" class="form-control" value="72" min="0" step="1" readonly style="background: #f1f5f9;">
+        </div>
+
+        <div style="background: var(--surface); border: 1px solid var(--primary); padding: 0.85rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 1.15rem; font-weight: 800;">
+            <span>Total Invoice Amount:</span>
+            <span id="invoice-total-display" style="color: var(--primary);">₹472.00</span>
+          </div>
+        </div>
+
+        <button type="submit" id="submit-complete-btn" class="btn btn-success" style="width: 100%;">
+          ✓ Confirm Completion & Generate Invoice
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Invoice Modal -->
+  <div id="invoice-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Invoice Details</h3>
+        <button class="close-btn" onclick="closeInvoiceModal()">&times;</button>
+      </div>
+      <div id="invoice-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Update Location Modal -->
+  <div id="location-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>📍 Update Your Live Location (Mock GPS)</h3>
+        <button class="close-btn" onclick="closeLocationModal()">&times;</button>
+      </div>
+      <form id="location-form">
+        <input type="hidden" id="location-booking-id">
+        <p class="subtitle" style="margin-bottom: 1rem;">
+          Update your coordinates while <strong>ON THE WAY</strong>. The customer's tracking view will calculate distance and dynamic ETA instantly.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+          <div class="form-group">
+            <label for="loc-lat">Latitude *</label>
+            <input type="number" id="loc-lat" class="form-control" step="0.0001" required value="12.9350">
+          </div>
+          <div class="form-group">
+            <label for="loc-lon">Longitude *</label>
+            <input type="number" id="loc-lon" class="form-control" step="0.0001" required value="77.6150">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <div style="font-size: 0.8rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.35rem;">Quick Simulation Presets:</div>
+          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetCoords(12.9350, 77.6150)">4.5 km away (Indiranagar)</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetCoords(12.9550, 77.6050)">2.0 km away (MG Road)</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetCoords(12.9700, 77.5960)">0.4 km away (Near Street)</button>
+          </div>
+        </div>
+
+        <div id="location-result" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem;"></div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeLocationModal()">Close</button>
+          <button type="submit" class="btn btn-primary btn-sm">Broadcast Location</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Additional Charge Modal -->
+  <div id="extra-charge-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>➕ Request Additional Charge</h3>
+        <button class="close-btn" onclick="closeExtraChargeModal()">&times;</button>
+      </div>
+      <form id="extra-charge-form">
+        <input type="hidden" id="extra-charge-booking-id">
+        <p class="subtitle" style="margin-bottom: 1rem;">
+          Request extra charges for unforeseen labour or replacement parts. The customer must approve before it can be billed.
+        </p>
+
+        <div class="form-group">
+          <label for="extra-charge-desc">Item Description *</label>
+          <input type="text" id="extra-charge-desc" class="form-control" required placeholder="e.g. Heavy-duty brass ball valve replacement">
+        </div>
+
+        <div class="form-group">
+          <label for="extra-charge-amount">Amount (₹) *</label>
+          <input type="number" id="extra-charge-amount" class="form-control" required min="10" step="10" placeholder="e.g. 250">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeExtraChargeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Submit Request to Customer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- In-App Chat Modal -->
+  <div id="chat-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="chat-modal-title">💬 Chat with Customer</h3>
+        <button class="close-btn" onclick="closeChatModal()">&times;</button>
+      </div>
+
+      <div id="chat-messages-box" class="chat-messages">
+        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading chat...</div>
+      </div>
+
+      <form id="chat-form" style="display: flex; gap: 0.5rem;">
+        <input type="hidden" id="chat-booking-id">
+        <input type="text" id="chat-input" class="form-control" placeholder="Type a message..." required autocomplete="off">
+        <button type="submit" class="btn btn-primary btn-sm">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/nav.js"></script>
+  <script>
+    const user = auth.requireAuth(["provider", "admin"]);
+    if (!user) throw new Error("Auth required");
+
+    let allJobs = [];
+    let currentFilter = "active";
+    let chatPollInterval = null;
+    let activeChatBookingId = null;
+
+    const STEPS = ["REQUESTED", "ACCEPTED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS", "COMPLETED"];
+
+    async function loadJobs() {
+      const container = document.getElementById("jobs-container");
+      try {
+        allJobs = await api.get("/api/providers/jobs");
+
+        const activeCount = allJobs.filter(j => j.status !== "COMPLETED" && j.status !== "CANCELLED").length;
+        const compCount = allJobs.filter(j => j.status === "COMPLETED").length;
+        document.getElementById("count-active").textContent = activeCount;
+        document.getElementById("count-completed").textContent = compCount;
+        document.getElementById("count-all").textContent = allJobs.length;
+
+        renderJobs();
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div class="alert alert-danger">${err.message || "Failed to load jobs"}</div>`;
+      }
+    }
+
+    function filterJobs(filterName) {
+      currentFilter = filterName;
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById(`tab-${filterName}`).classList.add("active");
+      renderJobs();
+    }
+
+    function renderJobs() {
+      const container = document.getElementById("jobs-container");
+      let filtered = allJobs;
+      if (currentFilter === "active") {
+        filtered = allJobs.filter(j => j.status !== "COMPLETED" && j.status !== "CANCELLED");
+      } else if (currentFilter === "completed") {
+        filtered = allJobs.filter(j => j.status === "COMPLETED");
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="card" style="text-align: center; padding: 3rem;">
+            <h3>No jobs found</h3>
+            <p class="subtitle" style="margin-top: 0.5rem;">No jobs match the selected filter tab.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(j => {
+        const badgeClass = `badge-status-${j.status}`;
+        const currentStepIdx = STEPS.indexOf(j.status);
+
+        let stepperHtml = "";
+        if (j.status !== "CANCELLED") {
+          stepperHtml = `
+            <div class="stepper">
+              ${STEPS.map((step, idx) => {
+                let statusClass = "";
+                if (idx < currentStepIdx) statusClass = "completed";
+                else if (idx === currentStepIdx) statusClass = "active";
+                return `
+                  <div class="step-item ${statusClass}">
+                    <div class="step-circle">${idx + 1}</div>
+                    <div class="step-label">${step.replace(/_/g, " ")}</div>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          `;
+        }
+
+        // Additional charges summary
+        let chargesHtml = "";
+        if (j.additional_charges && j.additional_charges.length > 0) {
+          chargesHtml = `
+            <div style="background: var(--surface); border: 1px dashed var(--surface-border); border-radius: var(--radius-sm); padding: 0.75rem; margin: 0.75rem 0; font-size: 0.85rem;">
+              <strong>Additional Charges Requested:</strong>
+              <div style="margin-top: 0.25rem;">
+                ${j.additional_charges.map(c => {
+                  let cBadge = "badge-pending";
+                  if (c.approval_status === "approved") cBadge = "badge-approved";
+                  else if (c.approval_status === "rejected") cBadge = "badge-rejected";
+                  return `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 3px 0; border-bottom: 1px solid #f1f5f9;">
+                      <span>${c.description} (₹${c.amount.toFixed(2)})</span>
+                      <span class="badge ${cBadge}" style="font-size:0.75rem;">${c.approval_status.toUpperCase()}</span>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+          `;
+        }
+
+        // Action controls based on status
+        let actionControls = "";
+        if (j.status === "REQUESTED") {
+          actionControls = `
+            <button class="btn btn-success" onclick="advanceStatus(${j.id}, 'ACCEPTED')">
+              ✓ Accept Request
+            </button>
+            <button class="btn btn-danger" onclick="advanceStatus(${j.id}, 'CANCELLED')">
+              ✕ Reject Request
+            </button>
+          `;
+        } else if (j.status === "ACCEPTED") {
+          actionControls = `
+            <button class="btn btn-primary" onclick="advanceStatus(${j.id}, 'ON_THE_WAY')">
+              🚗 Start Travel (On The Way)
+            </button>
+          `;
+        } else if (j.status === "ON_THE_WAY") {
+          actionControls = `
+            <button class="btn btn-secondary btn-sm" onclick="openLocationModal(${j.id})">
+              📍 Update Live Location
+            </button>
+            <button class="btn btn-primary" onclick="advanceStatus(${j.id}, 'ARRIVED')">
+              🏁 Confirm Arrived
+            </button>
+          `;
+        } else if (j.status === "ARRIVED") {
+          actionControls = `
+            <button class="btn btn-primary" onclick="advanceStatus(${j.id}, 'IN_PROGRESS')">
+              🛠️ Start Work (In Progress)
+            </button>
+          `;
+        } else if (j.status === "IN_PROGRESS") {
+          actionControls = `
+            <button class="btn btn-secondary btn-sm" onclick="openExtraChargeModal(${j.id})">
+              ➕ Request Extra Charge
+            </button>
+            <button class="btn btn-success" onclick="openCompleteModal(${j.id}, ${j.price_estimate_min})">
+              🏁 Complete Job & Invoice
+            </button>
+          `;
+        } else if (j.status === "COMPLETED" && j.invoice) {
+          actionControls = `
+            <button class="btn btn-secondary btn-sm" onclick="showInvoice(${j.id})">
+              🧾 View Invoice (₹${j.invoice.total})
+            </button>
+            <a href="/invoice.html?booking_id=${j.id}" target="_blank" class="btn btn-outline btn-sm">
+              🖨️ Printable Invoice
+            </a>
+          `;
+        }
+
+        // Chat button for active jobs
+        let chatBtn = "";
+        if (j.status !== "CANCELLED") {
+          chatBtn = `
+            <button class="btn btn-secondary btn-sm" onclick="openChatModal(${j.id}, '${j.customer_name}')">
+              💬 Chat with Customer
+            </button>
+          `;
+        }
+
+        return `
+          <div class="card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem;">
+                  <h3 style="margin: 0;">#${j.id} - ${j.service_name}</h3>
+                  <span class="badge ${badgeClass}">${j.status.replace(/_/g, " ")}</span>
+                </div>
+                <div style="color: var(--secondary); font-size: 0.9rem;">
+                  Customer: <strong>${j.customer_name}</strong> • Phone: <a href="tel:${j.customer_phone}">${j.customer_phone || "Not provided"}</a>
+                </div>
+              </div>
+
+              <div style="text-align: right;">
+                <div style="font-weight: 700; color: var(--primary); font-size: 1.1rem;">
+                  ${j.final_price ? `Final: ₹${j.final_price}` : `Est: ₹${j.price_estimate_min} - ₹${j.price_estimate_max}`}
+                </div>
+                <small style="color: var(--text-muted);">
+                  Scheduled: <strong>${j.scheduled_date} at ${j.scheduled_time}</strong>
+                </small>
+              </div>
+            </div>
+
+            <!-- Address and problem -->
+            <div style="background: var(--bg); border-radius: var(--radius-sm); padding: 0.75rem; margin: 1rem 0; font-size: 0.85rem;">
+              <div><strong>📍 Location:</strong> ${j.address_label} - ${j.full_address}</div>
+              <div style="margin-top: 0.25rem;"><strong>📝 Problem Description:</strong> ${j.problem_description}</div>
+            </div>
+
+            ${chargesHtml}
+
+            <!-- Status Stepper -->
+            ${stepperHtml}
+
+            <!-- Workflow Buttons -->
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; align-items: center; flex-wrap: wrap;">
+              ${chatBtn}
+              ${actionControls}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function advanceStatus(bookingId, targetStatus) {
+      if (targetStatus === "CANCELLED" && !confirm("Are you sure you want to reject this booking?")) {
+        return;
+      }
+      try {
+        await api.put(`/api/bookings/${bookingId}/status`, { status: targetStatus });
+        loadJobs();
+      } catch (err) {
+        alert(err.message || "Failed to update job status");
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Live Location Simulation
+    // -------------------------------------------------------------
+    function openLocationModal(bookingId) {
+      document.getElementById("location-booking-id").value = bookingId;
+      document.getElementById("location-result").style.display = "none";
+      document.getElementById("location-modal").style.display = "flex";
+    }
+
+    function closeLocationModal() {
+      document.getElementById("location-modal").style.display = "none";
+    }
+
+    function setPresetCoords(lat, lon) {
+      document.getElementById("loc-lat").value = lat;
+      document.getElementById("loc-lon").value = lon;
+    }
+
+    document.getElementById("location-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const bookingId = document.getElementById("location-booking-id").value;
+      const latitude = parseFloat(document.getElementById("loc-lat").value);
+      const longitude = parseFloat(document.getElementById("loc-lon").value);
+
+      try {
+        const res = await api.put(`/api/bookings/${bookingId}/location`, { latitude, longitude });
+        const resBox = document.getElementById("location-result");
+        resBox.innerHTML = `
+          <strong>Location Updated!</strong><br>
+          Current distance to customer: <strong>${res.distance_km} km</strong><br>
+          Calculated dynamic ETA: <strong>${res.eta_minutes} mins</strong> (at ${res.transit_speed_kmh} km/h)
+        `;
+        resBox.style.display = "block";
+      } catch (err) {
+        alert(err.message || "Failed to update location");
+      }
+    });
+
+    // -------------------------------------------------------------
+    // Additional Charges Flow
+    // -------------------------------------------------------------
+    function openExtraChargeModal(bookingId) {
+      document.getElementById("extra-charge-booking-id").value = bookingId;
+      document.getElementById("extra-charge-desc").value = "";
+      document.getElementById("extra-charge-amount").value = "";
+      document.getElementById("extra-charge-modal").style.display = "flex";
+    }
+
+    function closeExtraChargeModal() {
+      document.getElementById("extra-charge-modal").style.display = "none";
+    }
+
+    document.getElementById("extra-charge-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const bookingId = document.getElementById("extra-charge-booking-id").value;
+      const description = document.getElementById("extra-charge-desc").value.trim();
+      const amount = parseFloat(document.getElementById("extra-charge-amount").value);
+
+      try {
+        await api.post(`/api/bookings/${bookingId}/additional-charges`, { description, amount });
+        closeExtraChargeModal();
+        alert("Additional charge request submitted to customer for approval.");
+        loadJobs();
+      } catch (err) {
+        alert(err.message || "Failed to submit additional charge");
+      }
+    });
+
+    // -------------------------------------------------------------
+    // In-App Chat
+    // -------------------------------------------------------------
+    function openChatModal(bookingId, customerName) {
+      activeChatBookingId = bookingId;
+      document.getElementById("chat-booking-id").value = bookingId;
+      document.getElementById("chat-modal-title").textContent = `💬 Chat with ${customerName} (#${bookingId})`;
+      document.getElementById("chat-input").value = "";
+      document.getElementById("chat-modal").style.display = "flex";
+
+      fetchChatMessages();
+      if (chatPollInterval) clearInterval(chatPollInterval);
+      chatPollInterval = setInterval(fetchChatMessages, 2500);
+    }
+
+    function closeChatModal() {
+      if (chatPollInterval) clearInterval(chatPollInterval);
+      activeChatBookingId = null;
+      document.getElementById("chat-modal").style.display = "none";
+    }
+
+    async function fetchChatMessages() {
+      if (!activeChatBookingId) return;
+      const box = document.getElementById("chat-messages-box");
+      try {
+        const msgs = await api.get(`/api/bookings/${activeChatBookingId}/messages`);
+        if (msgs.length === 0) {
+          box.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--text-muted); font-size:0.85rem;">No messages yet. Send a message to coordinate with the customer.</div>`;
+          return;
+        }
+
+        const isScrolledToBottom = box.scrollHeight - box.clientHeight <= box.scrollTop + 50;
+
+        box.innerHTML = msgs.map(m => {
+          const isMine = m.sender_id === user.id;
+          return `
+            <div class="chat-msg ${isMine ? 'chat-msg-mine' : 'chat-msg-theirs'}">
+              <div>${m.message}</div>
+              <div class="chat-meta">
+                <span>${m.sender_name} (${m.sender_role})</span>
+                <span>${new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        if (isScrolledToBottom) {
+          box.scrollTop = box.scrollHeight;
+        }
+      } catch (err) {
+        console.warn("Error polling messages:", err);
+      }
+    }
+
+    document.getElementById("chat-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = document.getElementById("chat-input");
+      const message = input.value.trim();
+      if (!message || !activeChatBookingId) return;
+
+      try {
+        await api.post(`/api/bookings/${activeChatBookingId}/messages`, { message });
+        input.value = "";
+        fetchChatMessages();
+      } catch (err) {
+        alert(err.message || "Failed to send message");
+      }
+    });
+
+    // -------------------------------------------------------------
+    // Completion & Invoice
+    // -------------------------------------------------------------
+    function openCompleteModal(bookingId, minPrice) {
+      document.getElementById("complete-booking-id").value = bookingId;
+      document.getElementById("complete-alert").innerHTML = "";
+      document.getElementById("labour-charge").value = minPrice || 350;
+      document.getElementById("parts-charge").value = 0;
+      document.getElementById("service-charge").value = 50;
+
+      // Show approved additional charges if any
+      const j = allJobs.find(x => x.id === bookingId);
+      const approvedBox = document.getElementById("complete-approved-charges-box");
+      const approvedList = document.getElementById("complete-approved-charges-list");
+      if (j && j.additional_charges) {
+        const approved = j.additional_charges.filter(c => c.approval_status === "approved");
+        if (approved.length > 0) {
+          approvedList.innerHTML = approved.map(c => `• ${c.description}: ₹${c.amount.toFixed(2)}`).join("<br>");
+          approvedBox.style.display = "block";
+        } else {
+          approvedBox.style.display = "none";
+        }
+      } else {
+        approvedBox.style.display = "none";
+      }
+
+      calcInvoiceTotal();
+      document.getElementById("complete-modal").style.display = "flex";
+    }
+
+    function closeCompleteModal() {
+      document.getElementById("complete-modal").style.display = "none";
+    }
+
+    function calcInvoiceTotal() {
+      const labour = parseFloat(document.getElementById("labour-charge").value) || 0;
+      const parts = parseFloat(document.getElementById("parts-charge").value) || 0;
+      const service = parseFloat(document.getElementById("service-charge").value) || 0;
+
+      // Also sum approved extra charges
+      const bookingId = parseInt(document.getElementById("complete-booking-id").value);
+      const j = allJobs.find(x => x.id === bookingId);
+      let approvedExtra = 0;
+      if (j && j.additional_charges) {
+        approvedExtra = j.additional_charges
+          .filter(c => c.approval_status === "approved")
+          .reduce((sum, c) => sum + c.amount, 0);
+      }
+
+      const subtotal = labour + parts + service + approvedExtra;
+      const tax = Math.round(subtotal * 0.18 * 100) / 100;
+      const total = Math.round((subtotal + tax) * 100) / 100;
+
+      document.getElementById("tax-charge").value = tax.toFixed(2);
+      document.getElementById("invoice-total-display").textContent = `₹${total.toFixed(2)}`;
+    }
+
+    document.getElementById("complete-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const bookingId = document.getElementById("complete-booking-id").value;
+      const labour = parseFloat(document.getElementById("labour-charge").value) || 0;
+      const parts = parseFloat(document.getElementById("parts-charge").value) || 0;
+      const service = parseFloat(document.getElementById("service-charge").value) || 0;
+      const tax = parseFloat(document.getElementById("tax-charge").value) || 0;
+
+      const submitBtn = document.getElementById("submit-complete-btn");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Generating invoice...";
+
+      try {
+        await api.put(`/api/bookings/${bookingId}/status`, {
+          status: "COMPLETED",
+          labour_charge: labour,
+          parts_charge: parts,
+          service_charge: service,
+          tax: tax
+        });
+        closeCompleteModal();
+        alert("Job completed! Invoice successfully generated.");
+        loadJobs();
+      } catch (err) {
+        document.getElementById("complete-alert").innerHTML = `<div class="alert alert-danger">${err.message || "Failed to complete job"}</div>`;
+        submitBtn.disabled = false;
+        submitBtn.textContent = "✓ Confirm Completion & Generate Invoice";
+      }
+    });
+
+    function showInvoice(bookingId) {
+      const j = allJobs.find(x => x.id === bookingId);
+      if (!j || !j.invoice) return;
+      const inv = j.invoice;
+
+      document.getElementById("invoice-modal-body").innerHTML = `
+        <div style="margin-bottom: 1rem; border-bottom: 1px solid var(--surface-border); padding-bottom: 0.75rem;">
+          <div><strong>Job ID:</strong> #${j.id} - ${j.service_name}</div>
+          <div><strong>Customer:</strong> ${j.customer_name} (${j.customer_phone || ""})</div>
+          <div><strong>Completed At:</strong> ${new Date(inv.generated_at).toLocaleString()}</div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem; margin-bottom: 1.5rem;">
+          <tr style="border-bottom: 1px solid var(--surface-border); padding: 0.5rem 0;">
+            <td style="padding: 0.5rem 0;">Labour / Workmanship</td>
+            <td style="text-align: right;">₹${inv.labour_charge.toFixed(2)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--surface-border); padding: 0.5rem 0;">
+            <td style="padding: 0.5rem 0;">Parts & Materials</td>
+            <td style="text-align: right;">₹${inv.parts_charge.toFixed(2)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--surface-border); padding: 0.5rem 0;">
+            <td style="padding: 0.5rem 0;">Convenience / Service Fee</td>
+            <td style="text-align: right;">₹${inv.service_charge.toFixed(2)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--surface-border); padding: 0.5rem 0;">
+            <td style="padding: 0.5rem 0;">Taxes (GST 18%)</td>
+            <td style="text-align: right;">₹${inv.tax.toFixed(2)}</td>
+          </tr>
+          <tr style="font-size: 1.15rem; font-weight: 800; color: var(--primary);">
+            <td style="padding: 0.75rem 0;">Total</td>
+            <td style="text-align: right; padding: 0.75rem 0;">₹${inv.total.toFixed(2)}</td>
+          </tr>
+        </table>
+
+        <div style="text-align: right;">
+          <button class="btn btn-secondary btn-sm" onclick="closeInvoiceModal()">Close</button>
+        </div>
+      `;
+
+      document.getElementById("invoice-modal").style.display = "flex";
+    }
+
+    function closeInvoiceModal() {
+      document.getElementById("invoice-modal").style.display = "none";
+    }
+
+    loadJobs();
+  </script>
+</body>
+</html>

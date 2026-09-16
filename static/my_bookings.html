@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Bookings - LocalServe</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .chat-messages {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .chat-msg {
+      max-width: 80%;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .chat-msg-mine {
+      align-self: flex-end;
+      background: var(--primary);
+      color: white;
+      border-bottom-right-radius: 2px;
+    }
+    .chat-msg-theirs {
+      align-self: flex-start;
+      background: white;
+      border: 1px solid var(--surface-border);
+      color: var(--text-main);
+      border-bottom-left-radius: 2px;
+    }
+    .chat-meta {
+      font-size: 0.7rem;
+      opacity: 0.8;
+      margin-top: 2px;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .tracking-pulse {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      animation: pulse 1.6s infinite;
+    }
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1>My Service Bookings</h1>
+        <p class="subtitle">Track live provider travel, manage appointments, chat, approve extra charges, and view invoices</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <a href="/customer_dashboard.html" class="btn btn-primary">+ Book Another Service</a>
+      </div>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <div id="bookings-list">
+      <div style="text-align: center; padding: 3rem;">Loading your bookings...</div>
+    </div>
+  </main>
+
+  <!-- Review Modal Dialog -->
+  <div id="review-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">Leave a Review</h3>
+        <button class="close-btn" onclick="closeReviewModal()">&times;</button>
+      </div>
+
+      <div id="modal-alert"></div>
+
+      <form id="review-form">
+        <input type="hidden" id="modal-booking-id">
+
+        <div class="form-group">
+          <label for="review-rating">Rating (1 to 5 Stars) *</label>
+          <select id="review-rating" class="form-control" required>
+            <option value="5">★★★★★ (5 - Excellent)</option>
+            <option value="4">★★★★☆ (4 - Very Good)</option>
+            <option value="3">★★★☆☆ (3 - Average)</option>
+            <option value="2">★★☆☆☆ (2 - Poor)</option>
+            <option value="1">★☆☆☆☆ (1 - Terrible)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="review-comment">Your Feedback *</label>
+          <textarea id="review-comment" class="form-control" placeholder="Describe the quality of service, punctuality, and professionalism..." required minlength="2"></textarea>
+        </div>
+
+        <button type="submit" id="submit-review-btn" class="btn btn-primary" style="width: 100%;">
+          Submit Review
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Invoice Modal Dialog -->
+  <div id="invoice-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Service Invoice</h3>
+        <button class="close-btn" onclick="closeInvoiceModal()">&times;</button>
+      </div>
+
+      <div id="invoice-modal-content"></div>
+    </div>
+  </div>
+
+  <!-- Complaint Modal Dialog -->
+  <div id="complaint-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="complaint-modal-title">File a Service Complaint</h3>
+        <button class="close-btn" onclick="closeComplaintModal()">&times;</button>
+      </div>
+
+      <div id="complaint-modal-alert"></div>
+
+      <form id="complaint-form">
+        <input type="hidden" id="complaint-modal-booking-id">
+
+        <div class="form-group">
+          <label for="complaint-modal-reason">Reason / Issue Category *</label>
+          <select id="complaint-modal-reason" class="form-control" required>
+            <option value="">-- Select Reason --</option>
+            <option value="Poor Service Quality">Poor Service Quality / Incomplete Work</option>
+            <option value="Overcharging or Billing Discrepancy">Overcharging or Billing Discrepancy</option>
+            <option value="Provider No-Show or Excessive Delay">Provider No-Show or Excessive Delay</option>
+            <option value="Unprofessional or Rude Behavior">Unprofessional or Rude Behavior</option>
+            <option value="Property Damage">Property Damage</option>
+            <option value="Other Service Issue">Other Service Issue</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="complaint-modal-desc">Detailed Description *</label>
+          <textarea id="complaint-modal-desc" class="form-control" placeholder="Describe what went wrong and how you'd like it resolved..." rows="4" required minlength="5"></textarea>
+        </div>
+
+        <button type="submit" id="submit-booking-complaint-btn" class="btn btn-danger" style="width: 100%;">
+          Submit Complaint
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Live Tracking & ETA Modal -->
+  <div id="tracking-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="tracking-pulse"></span>
+          <h3 style="margin: 0;">Live Provider Tracking</h3>
+        </div>
+        <button class="close-btn" onclick="closeTrackingModal()">&times;</button>
+      </div>
+
+      <div id="tracking-body" style="padding-top: 0.5rem;">
+        <div style="text-align: center; padding: 2rem;">Loading live tracking data...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- In-App Chat Modal -->
+  <div id="chat-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="chat-modal-title">💬 Chat with Provider</h3>
+        <button class="close-btn" onclick="closeChatModal()">&times;</button>
+      </div>
+
+      <div id="chat-messages-box" class="chat-messages">
+        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading chat...</div>
+      </div>
+
+      <form id="chat-form" style="display: flex; gap: 0.5rem;">
+        <input type="hidden" id="chat-booking-id">
+        <input type="text" id="chat-input" class="form-control" placeholder="Type a message to your provider..." required autocomplete="off">
+        <button type="submit" class="btn btn-primary btn-sm">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/nav.js"></script>
+  <script>
+    const user = auth.requireAuth(["customer", "admin"]);
+    if (!user) throw new Error("Auth required");
+
+    let allBookings = [];
+    let trackingPollInterval = null;
+    let activeTrackingBookingId = null;
+    let chatPollInterval = null;
+    let activeChatBookingId = null;
+
+    async function loadBookings() {
+      const container = document.getElementById("bookings-list");
+      try {
+        allBookings = await api.get("/api/bookings/my");
+        if (allBookings.length === 0) {
+          container.innerHTML = `
+            <div class="card" style="text-align: center; padding: 3rem;">
+              <h3>No bookings found</h3>
+              <p class="subtitle" style="margin-top: 0.5rem;">You haven't requested any home services yet.</p>
+              <a href="/customer_dashboard.html" class="btn btn-primary" style="margin-top: 1rem;">Find a Provider</a>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = allBookings.map(b => {
+          const badgeClass = `badge-status-${b.status}`;
+          const isCompleted = b.status === "COMPLETED";
+          const isCancelled = b.status === "CANCELLED";
+          const isCancellable = b.status === "REQUESTED" || b.status === "ACCEPTED";
+          const isQuote = b.problem_description && b.problem_description.includes("[Quote Ref:");
+          const isEmergency = b.problem_description && b.problem_description.includes("[EMERGENCY");
+          const isRecurring = b.problem_description && b.problem_description.includes("[Recurring:");
+
+          // Additional charges UI
+          let chargesHtml = "";
+          if (b.additional_charges && b.additional_charges.length > 0) {
+            chargesHtml = `
+              <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 0.85rem; margin: 0.85rem 0; font-size: 0.85rem;">
+                <div style="font-weight: 700; color: #92400e; margin-bottom: 0.35rem;">
+                  ⚠️ Mid-Job Additional Charges Requested by Provider:
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                  ${b.additional_charges.map(c => {
+                    let actionControls = "";
+                    if (c.approval_status === "pending") {
+                      actionControls = `
+                        <div style="display: flex; gap: 0.35rem; align-items: center;">
+                          <button class="btn btn-success btn-sm" style="padding: 0.25rem 0.55rem; font-size: 0.8rem;" onclick="actionCharge(${b.id}, ${c.id}, 'approved')">
+                            ✓ Approve (+₹${c.amount.toFixed(2)})
+                          </button>
+                          <button class="btn btn-danger btn-sm" style="padding: 0.25rem 0.55rem; font-size: 0.8rem;" onclick="actionCharge(${b.id}, ${c.id}, 'rejected')">
+                            ✕ Reject
+                          </button>
+                        </div>
+                      `;
+                    } else if (c.approval_status === "approved") {
+                      actionControls = `<span class="badge badge-approved" style="font-size: 0.75rem;">Approved (+₹${c.amount.toFixed(2)})</span>`;
+                    } else {
+                      actionControls = `<span class="badge badge-rejected" style="font-size: 0.75rem;">Rejected (₹${c.amount.toFixed(2)})</span>`;
+                    }
+
+                    return `
+                      <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid #fef3c7; flex-wrap: wrap; gap: 0.5rem;">
+                        <div>
+                          <strong>${c.description}</strong>
+                          <div style="color: var(--secondary); font-size: 0.8rem;">Amount: ₹${c.amount.toFixed(2)}</div>
+                        </div>
+                        ${actionControls}
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.5rem;">
+                  * Hard Rule: Pending or rejected charges are never added to your final invoice.
+                </div>
+              </div>
+            `;
+          }
+
+          // Action buttons logic
+          let actionsHtml = "";
+
+          // Multi-provider quote acceptance
+          if (b.status === "REQUESTED" && isQuote) {
+            actionsHtml += `
+              <button class="btn btn-success btn-sm" onclick="acceptQuote(${b.id}, '${b.provider_name}')">
+                ✓ Accept This Quote
+              </button>
+            `;
+          }
+
+          // Live tracking button when provider is on the way
+          if (b.status === "ON_THE_WAY") {
+            actionsHtml += `
+              <button class="btn btn-primary btn-sm" style="background: #0284c7; border-color: #0284c7;" onclick="openTrackingModal(${b.id})">
+                📍 Live Tracking & ETA
+              </button>
+            `;
+          }
+
+          // In-app chat button
+          if (!isCancelled) {
+            actionsHtml += `
+              <button class="btn btn-secondary btn-sm" onclick="openChatModal(${b.id}, '${b.provider_name}')">
+                💬 Chat
+              </button>
+            `;
+          }
+
+          if (isCancellable) {
+            actionsHtml += `
+              <button class="btn btn-danger btn-sm" onclick="cancelBooking(${b.id}, '${b.status}')">
+                Cancel
+              </button>
+            `;
+          }
+
+          if (b.invoice || isCompleted) {
+            actionsHtml += `
+              <a href="/invoice.html?booking_id=${b.id}" class="btn btn-secondary btn-sm" target="_blank">
+                🧾 Printable Invoice
+              </a>
+            `;
+          }
+
+          if (isCompleted) {
+            actionsHtml += `
+              <a href="/booking.html?repeat_booking_id=${b.id}&provider_id=${b.provider_id}&service_id=${b.service_id}&address_id=${b.address_id}" class="btn btn-primary btn-sm">
+                🔁 Book Again
+              </a>
+            `;
+
+            if (b.review) {
+              actionsHtml += `
+                <div style="color: #b45309; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  ⭐ Reviewed (${b.review.rating}/5)
+                </div>
+              `;
+            } else {
+              actionsHtml += `
+                <button class="btn btn-success btn-sm" onclick="openReviewModal(${b.id}, '${b.provider_name}')">
+                  ★ Leave a Review
+                </button>
+              `;
+            }
+          }
+
+          // Dispute/Complaint button
+          actionsHtml += `
+            <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5;" onclick="openComplaintModal(${b.id}, '${b.service_name}')">
+              ⚠️ Complaint
+            </button>
+          `;
+
+          let cancellationTag = "";
+          if (b.cancellation_reason) {
+            cancellationTag = `
+              <div style="background: #fef2f2; border-left: 3px solid #ef4444; padding: 0.5rem 0.75rem; margin: 0.5rem 0; font-size: 0.8rem; color: #991b1b;">
+                <strong>Cancellation Note:</strong> ${b.cancellation_reason}
+              </div>
+            `;
+          }
+
+          return `
+            <div class="card" style="margin-bottom: 1.25rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                  <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem; flex-wrap: wrap;">
+                    <h3 style="margin: 0;">#${b.id} - ${b.service_name}</h3>
+                    <span class="badge ${badgeClass}">${b.status.replace(/_/g, " ")}</span>
+                    ${isQuote ? `<span class="badge badge-info" style="font-size: 0.75rem;">Multi-Provider Quote</span>` : ""}
+                    ${isEmergency ? `<span class="badge badge-danger" style="font-size: 0.75rem; background: #dc2626; color: white;">🚨 Emergency</span>` : ""}
+                    ${isRecurring ? `<span class="badge" style="font-size: 0.75rem; background: #e0e7ff; color: #4338ca;">🔁 Recurring</span>` : ""}
+                  </div>
+                  <div style="color: var(--secondary); font-size: 0.9rem;">
+                    Provider: <strong>${b.provider_name}</strong> (${b.provider_phone || "Contact via in-app chat"})
+                  </div>
+                </div>
+
+                <div style="text-align: right;">
+                  <div style="font-weight: 700; color: var(--primary); font-size: 1.1rem;">
+                    ${b.final_price ? `Final: ₹${b.final_price}` : `Est: ₹${b.price_estimate_min} - ₹${b.price_estimate_max}`}
+                  </div>
+                  <small style="color: var(--text-muted);">
+                    Scheduled: <strong>${b.scheduled_date} at ${b.scheduled_time}</strong>
+                  </small>
+                </div>
+              </div>
+
+              <div style="background: var(--bg); border-radius: var(--radius-sm); padding: 0.75rem; margin: 0.75rem 0; font-size: 0.85rem;">
+                <div><strong>Address:</strong> ${b.address_label} - ${b.full_address}</div>
+                <div style="margin-top: 0.25rem;"><strong>Issue:</strong> ${b.problem_description}</div>
+              </div>
+
+              ${cancellationTag}
+              ${chargesHtml}
+
+              <div style="display: flex; justify-content: flex-end; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                ${actionsHtml}
+              </div>
+            </div>
+          `;
+        }).join("");
+
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div class="alert alert-danger">Error loading bookings: ${err.message}</div>`;
+      }
+    }
+
+    async function actionCharge(bookingId, chargeId, approvalStatus) {
+      try {
+        await api.put(`/api/bookings/${bookingId}/additional-charges/${chargeId}`, {
+          approval_status: approvalStatus
+        });
+        alert(`Charge has been ${approvalStatus}.`);
+        loadBookings();
+      } catch (err) {
+        alert(err.message || "Failed to update charge");
+      }
+    }
+
+    async function cancelBooking(bookingId, currentStatus) {
+      const isPreDispatch = currentStatus === "REQUESTED" || currentStatus === "ACCEPTED";
+      const reasonPrompt = prompt(`Please enter cancellation reason (${isPreDispatch ? 'Pre-dispatch' : 'Post-dispatch'}):`);
+      if (reasonPrompt === null) return;
+
+      const reason = reasonPrompt.trim() || "Customer requested cancellation";
+      try {
+        await api.put(`/api/bookings/${bookingId}/status`, {
+          status: "CANCELLED",
+          cancellation_reason: reason
+        });
+        loadBookings();
+      } catch (err) {
+        alert(err.message || "Failed to cancel booking");
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Live Tracking & ETA Polling
+    // -------------------------------------------------------------
+    function openTrackingModal(bookingId) {
+      activeTrackingBookingId = bookingId;
+      document.getElementById("tracking-modal").style.display = "flex";
+      fetchTrackingInfo();
+      if (trackingPollInterval) clearInterval(trackingPollInterval);
+      trackingPollInterval = setInterval(fetchTrackingInfo, 2500);
+    }
+
+    function closeTrackingModal() {
+      if (trackingPollInterval) clearInterval(trackingPollInterval);
+      activeTrackingBookingId = null;
+      document.getElementById("tracking-modal").style.display = "none";
+    }
+
+    async function fetchTrackingInfo() {
+      if (!activeTrackingBookingId) return;
+      const body = document.getElementById("tracking-body");
+      try {
+        const data = await api.get(`/api/bookings/${activeTrackingBookingId}/tracking`);
+
+        if (data.status !== "ON_THE_WAY") {
+          body.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">🏁</div>
+              <h4>Provider Has Arrived!</h4>
+              <p class="subtitle">Booking status is now <strong>${data.status}</strong>. Tracking is completed.</p>
+              <button class="btn btn-secondary btn-sm" onclick="closeTrackingModal(); loadBookings();" style="margin-top: 1rem;">Close</button>
+            </div>
+          `;
+          clearInterval(trackingPollInterval);
+          return;
+        }
+
+        body.innerHTML = `
+          <div style="background: var(--bg); border: 1px solid var(--surface-border); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <div>
+                <strong style="font-size: 1.1rem;">${data.provider_name}</strong>
+                <div style="color: var(--secondary); font-size: 0.85rem;">En route to your location</div>
+              </div>
+              <span class="badge badge-status-ON_THE_WAY">ON THE WAY</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+              <div style="background: white; border: 1px solid var(--surface-border); padding: 1rem; border-radius: var(--radius-sm); text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Distance</div>
+                <div style="font-size: 1.8rem; font-weight: 800; color: var(--primary); margin: 0.25rem 0;">${data.distance_km} km</div>
+                <small style="color: var(--secondary);">Straight-line</small>
+              </div>
+
+              <div style="background: white; border: 1px solid var(--surface-border); padding: 1rem; border-radius: var(--radius-sm); text-align: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Estimated Arrival</div>
+                <div style="font-size: 1.8rem; font-weight: 800; color: #16a34a; margin: 0.25rem 0;">~${data.eta_minutes} mins</div>
+                <small style="color: var(--secondary);">${data.transit_speed_kmh} km/h city speed</small>
+              </div>
+            </div>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid var(--surface-border); padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--secondary); margin-bottom: 1rem;">
+            <div><strong>Provider GPS:</strong> Lat ${data.provider_latitude.toFixed(4)}, Lon ${data.provider_longitude.toFixed(4)}</div>
+            <div><strong>Your Destination:</strong> Lat ${data.destination_latitude.toFixed(4)}, Lon ${data.destination_longitude.toFixed(4)}</div>
+            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--text-muted);">Auto-updating live via 2.5s polling.</div>
+          </div>
+
+          <div style="text-align: right;">
+            <button class="btn btn-secondary btn-sm" onclick="closeTrackingModal()">Close Tracking</button>
+          </div>
+        `;
+      } catch (err) {
+        body.innerHTML = `<div class="alert alert-danger">${err.message || "Failed to load live tracking"}</div>`;
+      }
+    }
+
+    // -------------------------------------------------------------
+    // In-App Chat
+    // -------------------------------------------------------------
+    function openChatModal(bookingId, providerName) {
+      activeChatBookingId = bookingId;
+      document.getElementById("chat-booking-id").value = bookingId;
+      document.getElementById("chat-modal-title").textContent = `💬 Chat with ${providerName} (#${bookingId})`;
+      document.getElementById("chat-input").value = "";
+      document.getElementById("chat-modal").style.display = "flex";
+
+      fetchChatMessages();
+      if (chatPollInterval) clearInterval(chatPollInterval);
+      chatPollInterval = setInterval(fetchChatMessages, 2500);
+    }
+
+    function closeChatModal() {
+      if (chatPollInterval) clearInterval(chatPollInterval);
+      activeChatBookingId = null;
+      document.getElementById("chat-modal").style.display = "none";
+    }
+
+    async function fetchChatMessages() {
+      if (!activeChatBookingId) return;
+      const box = document.getElementById("chat-messages-box");
+      try {
+        const msgs = await api.get(`/api/bookings/${activeChatBookingId}/messages`);
+        if (msgs.length === 0) {
+          box.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--text-muted); font-size:0.85rem;">No messages yet. Send a message to coordinate with the service provider.</div>`;
+          return;
+        }
+
+        const isScrolledToBottom = box.scrollHeight - box.clientHeight <= box.scrollTop + 50;
+
+        box.innerHTML = msgs.map(m => {
+          const isMine = m.sender_id === user.id;
+          return `
+            <div class="chat-msg ${isMine ? 'chat-msg-mine' : 'chat-msg-theirs'}">
+              <div>${m.message}</div>
+              <div class="chat-meta">
+                <span>${m.sender_name} (${m.sender_role})</span>
+                <span>${new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        if (isScrolledToBottom) {
+          box.scrollTop = box.scrollHeight;
+        }
+      } catch (err) {
+        console.warn("Error polling messages:", err);
+      }
+    }
+
+    document.getElementById("chat-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = document.getElementById("chat-input");
+      const message = input.value.trim();
+      if (!message || !activeChatBookingId) return;
+
+      try {
+        await api.post(`/api/bookings/${activeChatBookingId}/messages`, { message });
+        input.value = "";
+        fetchChatMessages();
+      } catch (err) {
+        alert(err.message || "Failed to send message");
+      }
+    });
+
+    // -------------------------------------------------------------
+    // Reviews & Complaints & Quotes
+    // -------------------------------------------------------------
+    function openReviewModal(bookingId, providerName) {
+      document.getElementById("modal-booking-id").value = bookingId;
+      document.getElementById("modal-title").textContent = `Review ${providerName}`;
+      document.getElementById("modal-alert").innerHTML = "";
+      document.getElementById("review-comment").value = "";
+      document.getElementById("review-modal").style.display = "flex";
+    }
+
+    function closeReviewModal() {
+      document.getElementById("review-modal").style.display = "none";
+    }
+
+    document.getElementById("review-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const bookingId = document.getElementById("modal-booking-id").value;
+      const rating = parseInt(document.getElementById("review-rating").value);
+      const comment = document.getElementById("review-comment").value.trim();
+      const modalAlert = document.getElementById("modal-alert");
+      const submitBtn = document.getElementById("submit-review-btn");
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting...";
+
+      try {
+        await api.post(`/api/bookings/${bookingId}/review`, { rating, comment });
+        closeReviewModal();
+        alert("Thank you! Your review has been recorded.");
+        loadBookings();
+      } catch (err) {
+        modalAlert.innerHTML = `<div class="alert alert-danger">${err.message || "Failed to submit review"}</div>`;
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Review";
+      }
+    });
+
+    async function acceptQuote(bookingId, providerName) {
+      if (!confirm(`Accept quote from ${providerName}? This will confirm this booking and automatically cancel all other sibling quote requests.`)) {
+        return;
+      }
+      try {
+        const res = await api.post(`/api/bookings/${bookingId}/accept-quote`, {});
+        alert(`Quote accepted! Sibling quotes (${res.cancelled_sibling_ids.length}) were cancelled automatically.`);
+        loadBookings();
+      } catch (err) {
+        alert(err.message || "Failed to accept quote");
+      }
+    }
+
+    function openComplaintModal(bookingId, serviceName) {
+      document.getElementById("complaint-modal-booking-id").value = bookingId;
+      document.getElementById("complaint-modal-title").textContent = `File Complaint for Booking #${bookingId} (${serviceName})`;
+      document.getElementById("complaint-modal-alert").innerHTML = "";
+      document.getElementById("complaint-modal-desc").value = "";
+      document.getElementById("complaint-modal-reason").value = "";
+      document.getElementById("complaint-modal").style.display = "flex";
+    }
+
+    function closeComplaintModal() {
+      document.getElementById("complaint-modal").style.display = "none";
+    }
+
+    document.getElementById("complaint-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const bookingId = document.getElementById("complaint-modal-booking-id").value;
+      const reason = document.getElementById("complaint-modal-reason").value;
+      const description = document.getElementById("complaint-modal-desc").value.trim();
+      const modalAlert = document.getElementById("complaint-modal-alert");
+      const submitBtn = document.getElementById("submit-booking-complaint-btn");
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting Complaint...";
+
+      try {
+        await api.post(`/api/bookings/${bookingId}/complaints`, { reason, description });
+        closeComplaintModal();
+        alert("Complaint filed successfully. You can track status under the Complaints page.");
+        loadBookings();
+      } catch (err) {
+        modalAlert.innerHTML = `<div class="alert alert-danger">${err.message || "Failed to submit complaint"}</div>`;
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Complaint";
+      }
+    });
+
+    loadBookings();
+  </script>
+</body>
+</html>

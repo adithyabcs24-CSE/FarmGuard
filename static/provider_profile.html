@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Profile - LocalServe</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="container" style="max-width: 960px;">
+    <div id="loading" style="text-align: center; padding: 3rem;">Loading provider details...</div>
+
+    <div id="profile-content" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <a href="/customer_dashboard.html" class="btn btn-secondary btn-sm">← Back to Providers</a>
+        <a id="book-btn-top" href="#" class="btn btn-primary">Book This Professional</a>
+      </div>
+
+      <!-- Header Card -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h1 id="provider-name" style="margin-bottom: 0.25rem;">Provider Name</h1>
+            <div style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem;">
+              <span id="verification-badge" class="badge">pending</span>
+              <span style="color: var(--text-muted); font-size: 0.9rem;" id="exp-text">0 yrs experience</span>
+              <span style="color: var(--text-muted); font-size: 0.9rem;" id="radius-text">10 km radius</span>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div id="rating-display" style="font-size: 1.75rem; font-weight: 800; color: #b45309;">
+              ⭐ 0.0
+            </div>
+            <small style="color: var(--text-muted);" id="jobs-text">0 jobs completed</small>
+          </div>
+        </div>
+
+        <p id="provider-bio" style="color: var(--secondary); margin-top: 0.5rem; line-height: 1.6;">
+          Bio details...
+        </p>
+      </div>
+
+      <!-- Services & Availability Grid -->
+      <div class="grid-2" style="margin-bottom: 1.5rem;">
+        <!-- Services Offered -->
+        <div class="card">
+          <h3>Services & Pricing</h3>
+          <p class="subtitle" style="margin-bottom: 1rem;">Upfront price estimates per task</p>
+          <div id="services-list">
+            <!-- Services injected here -->
+          </div>
+        </div>
+
+        <!-- Availability Schedule -->
+        <div class="card">
+          <h3>Weekly Availability Slots</h3>
+          <p class="subtitle" style="margin-bottom: 1rem;">Operating hours when provider accepts bookings</p>
+          <div id="slots-list">
+            <!-- Slots injected here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Reviews Section -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3>Verified Customer Reviews</h3>
+          <span id="review-count-badge" class="badge" style="background: var(--bg); color: var(--text-main);">0 reviews</span>
+        </div>
+        <div id="reviews-list">
+          <!-- Reviews injected here -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/nav.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const providerId = urlParams.get("id");
+
+    async function loadProfile() {
+      if (!providerId) {
+        document.getElementById("loading").innerHTML = "<div class='alert alert-danger'>Provider ID missing in URL.</div>";
+        return;
+      }
+
+      try {
+        const p = await api.get(`/api/customers/providers/${providerId}`);
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("profile-content").style.display = "block";
+
+        document.getElementById("provider-name").textContent = p.name;
+        document.getElementById("exp-text").textContent = `${p.experience_years} years experience`;
+        document.getElementById("radius-text").textContent = `Serves within ${p.service_radius_km} km`;
+        document.getElementById("provider-bio").textContent = p.bio || "Verified home service specialist.";
+        document.getElementById("rating-display").textContent = `⭐ ${p.avg_rating > 0 ? p.avg_rating.toFixed(1) : "New"}`;
+        document.getElementById("jobs-text").textContent = `${p.jobs_completed} verified jobs completed`;
+
+        const vBadge = document.getElementById("verification-badge");
+        if (p.verification_status === "approved") {
+          vBadge.textContent = "✓ Verified";
+          vBadge.className = "badge badge-approved";
+        } else if (p.verification_status === "rejected") {
+          vBadge.textContent = "✕ Verification Rejected";
+          vBadge.className = "badge badge-rejected";
+        } else {
+          vBadge.textContent = "⌛ Verification Pending";
+          vBadge.className = "badge badge-pending";
+        }
+
+        document.getElementById("book-btn-top").href = `/booking.html?provider_id=${p.id}`;
+
+        // Services List
+        const servicesContainer = document.getElementById("services-list");
+        if (p.services.length === 0) {
+          servicesContainer.innerHTML = "<p style='color: var(--text-muted);'>No services listed.</p>";
+        } else {
+          servicesContainer.innerHTML = p.services.map(s => `
+            <div style="padding: 0.75rem 0; border-bottom: 1px solid var(--surface-border); display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+              <div style="flex: 1;">
+                <strong>${s.service_name}</strong>
+                ${s.description ? `<p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">${s.description}</p>` : ""}
+                ${s.price_breakdown_note ? `<div style="font-size: 0.75rem; color: var(--secondary); background: var(--bg); padding: 3px 6px; border-radius: 4px; display: inline-block; margin-top: 0.35rem;">💡 ${s.price_breakdown_note}</div>` : ""}
+              </div>
+              <div style="text-align: right; min-width: 120px;">
+                <span style="font-weight: 700; color: var(--primary); font-size: 1.05rem;">₹${s.price_min} - ₹${s.price_max}</span>
+              </div>
+            </div>
+          `).join("");
+        }
+
+        // Availability Slots
+        const slotsContainer = document.getElementById("slots-list");
+        if (p.availability_slots.length === 0) {
+          slotsContainer.innerHTML = "<p style='color: var(--text-muted);'>No availability slots configured.</p>";
+        } else {
+          slotsContainer.innerHTML = p.availability_slots.map(s => `
+            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--surface-border); font-size: 0.9rem;">
+              <span style="font-weight: 600;">${s.day_of_week}</span>
+              <span style="color: var(--secondary);">${s.start_time} - ${s.end_time}</span>
+            </div>
+          `).join("");
+        }
+
+        // Reviews
+        const reviewsContainer = document.getElementById("reviews-list");
+        document.getElementById("review-count-badge").textContent = `${p.reviews.length} reviews`;
+        if (p.reviews.length === 0) {
+          reviewsContainer.innerHTML = "<p style='color: var(--text-muted); padding: 1rem 0;'>No reviews yet. Be the first to book and review!</p>";
+        } else {
+          reviewsContainer.innerHTML = p.reviews.map(r => `
+            <div style="padding: 1rem 0; border-bottom: 1px solid var(--surface-border);">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                <strong>${r.customer_name}</strong>
+                <span style="color: #b45309; font-weight: 700;">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</span>
+              </div>
+              <p style="color: var(--secondary); font-size: 0.9rem; line-height: 1.4;">${r.comment}</p>
+              <small style="color: var(--text-light); font-size: 0.75rem; margin-top: 0.35rem; display: block;">
+                ${new Date(r.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+              </small>
+            </div>
+          `).join("");
+        }
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById("loading").innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+      }
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Invoice - LocalServe</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .invoice-card {
+      background: #ffffff;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-md);
+      padding: 2.5rem;
+      margin: 2rem auto;
+      max-width: 800px;
+      box-shadow: var(--shadow-md);
+    }
+    .invoice-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid var(--surface-border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .invoice-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .invoice-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+    }
+    .invoice-table th {
+      background: var(--bg);
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 2px solid var(--surface-border);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--secondary);
+    }
+    .invoice-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--surface-border);
+      font-size: 0.95rem;
+    }
+    .invoice-table tr:last-child td {
+      border-bottom: none;
+    }
+    .calc-verify-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .verify-success {
+      background: var(--success-light);
+      color: var(--success);
+      border: 1px solid #bbf7d0;
+    }
+    .verify-failure {
+      background: var(--danger-light);
+      color: var(--danger);
+      border: 1px solid #fecaca;
+    }
+    @media print {
+      body {
+        background: #ffffff !important;
+      }
+      .no-print, #navbar-root, .navbar {
+        display: none !important;
+      }
+      .invoice-card {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="container">
+    <div class="no-print" style="max-width: 800px; margin: 1rem auto 0; display: flex; justify-content: space-between; align-items: center;">
+      <a href="/my_bookings.html" class="btn btn-secondary btn-sm">← Back to My Bookings</a>
+      <button onclick="window.print()" class="btn btn-primary btn-sm">🖨️ Print / Save as PDF</button>
+    </div>
+
+    <div id="loading-box" style="text-align: center; padding: 4rem 1rem;">
+      <h3>Loading invoice details...</h3>
+    </div>
+
+    <div id="alert-box" style="max-width: 800px; margin: 1rem auto;"></div>
+
+    <div id="invoice-render-area" style="display: none;">
+      <div class="invoice-card">
+        <!-- Invoice Header -->
+        <div class="invoice-header">
+          <div>
+            <div style="font-size: 1.75rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+              ⚡ LocalServe
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">
+              Official Tax Invoice & Service Receipt
+            </p>
+          </div>
+          <div style="text-align: right;">
+            <span class="badge badge-success" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">PAID & COMPLETED</span>
+            <div id="inv-number" style="font-size: 1.1rem; font-weight: 700; margin-top: 0.5rem; color: var(--text-main);">
+              INV-0000
+            </div>
+            <div id="inv-date" style="font-size: 0.85rem; color: var(--text-muted);">
+              Date: --
+            </div>
+          </div>
+        </div>
+
+        <!-- Meta Grid -->
+        <div class="invoice-meta-grid">
+          <div>
+            <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--secondary); margin-bottom: 0.5rem; letter-spacing: 0.05em;">
+              Billed To (Customer)
+            </h4>
+            <div id="cust-name" style="font-weight: 700; font-size: 1.05rem;">--</div>
+            <div id="cust-phone" style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.2rem;">--</div>
+            <div id="cust-address" style="color: var(--text-main); font-size: 0.9rem; margin-top: 0.35rem; line-height: 1.4;">--</div>
+          </div>
+
+          <div>
+            <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--secondary); margin-bottom: 0.5rem; letter-spacing: 0.05em;">
+              Service Provider
+            </h4>
+            <div id="prov-name" style="font-weight: 700; font-size: 1.05rem;">--</div>
+            <div id="prov-category" style="color: var(--primary); font-size: 0.9rem; font-weight: 600; margin-top: 0.2rem;">--</div>
+            <div id="prov-phone" style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.2rem;">--</div>
+            <div id="booking-id-tag" style="font-size: 0.85rem; color: var(--secondary); margin-top: 0.35rem;">--</div>
+          </div>
+        </div>
+
+        <!-- Service Line Item Table -->
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th>Description / Cost Component</th>
+              <th style="text-align: right; width: 140px;">Amount (INR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div id="service-title" style="font-weight: 600;">Service Execution Labour</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Professional skilled labour charges</div>
+              </td>
+              <td id="labour-amount" style="text-align: right; font-weight: 500;">₹0.00</td>
+            </tr>
+            <tr>
+              <td>
+                <div style="font-weight: 600;">Parts, Materials & Hardware</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Replacement components supplied during service</div>
+              </td>
+              <td id="parts-amount" style="text-align: right; font-weight: 500;">₹0.00</td>
+            </tr>
+            <tr>
+              <td>
+                <div style="font-weight: 600;">Platform Convenience & Safety Fee</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Standard booking coordination and service guarantee</div>
+              </td>
+              <td id="service-fee-amount" style="text-align: right; font-weight: 500;">₹0.00</td>
+            </tr>
+            <tr style="background: var(--bg); font-weight: 600;">
+              <td>Subtotal (Taxable Value)</td>
+              <td id="subtotal-amount" style="text-align: right;">₹0.00</td>
+            </tr>
+            <tr>
+              <td>
+                <div style="font-weight: 600;">Applicable Taxes (GST 18%)</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">9% CGST + 9% SGST on platform and taxable services</div>
+              </td>
+              <td id="tax-amount" style="text-align: right; font-weight: 500;">₹0.00</td>
+            </tr>
+            <tr style="font-size: 1.25rem; font-weight: 800; color: var(--primary); border-top: 2px solid var(--surface-border);">
+              <td style="padding: 1rem;">Total Amount Paid</td>
+              <td id="total-amount" style="text-align: right; padding: 1rem;">₹0.00</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Arithmetic Verification Display -->
+        <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg); border-radius: var(--radius-sm); border: 1px solid var(--surface-border);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <div style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--secondary); margin-bottom: 0.25rem;">
+                Arithmetic Verification & Integrity Check
+              </div>
+              <div id="math-formula" style="font-size: 0.85rem; font-family: monospace; color: var(--text-muted);">
+                labour + parts + service + tax == total
+              </div>
+            </div>
+            <div id="verify-badge" class="calc-verify-badge verify-success">
+              ✓ Verified Correct
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer / Terms -->
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--surface-border); font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">
+          <div>• This is a computer-generated tax invoice issued by LocalServe Technologies.</div>
+          <div>• For billing disputes or warranty inquiries, contact support@localserve.in or file a complaint via the portal.</div>
+          <div>• All services completed under LocalServe 30-day workmanship assurance.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/nav.js"></script>
+  <script>
+    const user = auth.requireAuth(["customer", "provider", "admin"]);
+    if (!user) throw new Error("Auth required");
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const bookingId = urlParams.get("booking_id");
+
+    async function loadInvoice() {
+      const loadingBox = document.getElementById("loading-box");
+      const alertBox = document.getElementById("alert-box");
+      const renderArea = document.getElementById("invoice-render-area");
+
+      if (!bookingId) {
+        loadingBox.style.display = "none";
+        alertBox.innerHTML = "<div class='alert alert-danger'>Missing booking_id parameter in URL.</div>";
+        return;
+      }
+
+      try {
+        const b = await api.get(`/api/bookings/${bookingId}`);
+        loadingBox.style.display = "none";
+
+        if (!b.invoice) {
+          alertBox.innerHTML = `
+            <div class='card' style='text-align: center; padding: 2.5rem;'>
+              <h3>No invoice available yet</h3>
+              <p class='subtitle' style='margin: 0.5rem 0 1.5rem;'>
+                Invoices are generated upon job completion. The current status of this booking is <strong>${b.status}</strong>.
+              </p>
+              <a href='/my_bookings.html' class='btn btn-primary btn-sm'>Back to Bookings</a>
+            </div>
+          `;
+          return;
+        }
+
+        const inv = b.invoice;
+
+        // Populate fields
+        document.getElementById("inv-number").textContent = `INV-${String(inv.id).padStart(6, "0")}`;
+        document.getElementById("inv-date").textContent = `Date: ${new Date(inv.generated_at).toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+
+        document.getElementById("cust-name").textContent = b.customer_name || "Customer";
+        document.getElementById("cust-phone").textContent = b.customer_phone ? `Phone: ${b.customer_phone}` : "";
+        document.getElementById("cust-address").textContent = `${b.address_label}: ${b.full_address}`;
+
+        document.getElementById("prov-name").textContent = b.provider_name || "Service Provider";
+        document.getElementById("prov-category").textContent = b.category_name || "Home Service";
+        document.getElementById("prov-phone").textContent = b.provider_phone ? `Phone: ${b.provider_phone}` : "";
+        document.getElementById("booking-id-tag").textContent = `Booking Ref: #${b.id} (${b.scheduled_date} at ${b.scheduled_time})`;
+
+        document.getElementById("service-title").textContent = `${b.service_name} - Labour`;
+        document.getElementById("labour-amount").textContent = `₹${inv.labour_charge.toFixed(2)}`;
+        document.getElementById("parts-amount").textContent = `₹${inv.parts_charge.toFixed(2)}`;
+        document.getElementById("service-fee-amount").textContent = `₹${inv.service_charge.toFixed(2)}`;
+
+        const subtotal = inv.labour_charge + inv.parts_charge + inv.service_charge;
+        document.getElementById("subtotal-amount").textContent = `₹${subtotal.toFixed(2)}`;
+        document.getElementById("tax-amount").textContent = `₹${inv.tax.toFixed(2)}`;
+        document.getElementById("total-amount").textContent = `₹${inv.total.toFixed(2)}`;
+
+        // Arithmetic verification: labour + parts + service + tax == total
+        const calcTotal = Number((inv.labour_charge + inv.parts_charge + inv.service_charge + inv.tax).toFixed(2));
+        const diff = Math.abs(calcTotal - Number(inv.total.toFixed(2)));
+        const isExactMatch = diff < 0.01;
+
+        const formulaText = `₹${inv.labour_charge.toFixed(2)} (labour) + ₹${inv.parts_charge.toFixed(2)} (parts) + ₹${inv.service_charge.toFixed(2)} (service) + ₹${inv.tax.toFixed(2)} (tax) = ₹${calcTotal.toFixed(2)} (Total: ₹${inv.total.toFixed(2)})`;
+        document.getElementById("math-formula").textContent = formulaText;
+
+        const badge = document.getElementById("verify-badge");
+        if (isExactMatch) {
+          badge.className = "calc-verify-badge verify-success";
+          badge.textContent = "✓ Arithmetic Verified (100% Match)";
+        } else {
+          badge.className = "calc-verify-badge verify-failure";
+          badge.textContent = `⚠ Arithmetic Discrepancy (Diff: ₹${diff.toFixed(2)})`;
+        }
+
+        renderArea.style.display = "block";
+
+      } catch (err) {
+        loadingBox.style.display = "none";
+        alertBox.innerHTML = `<div class='alert alert-danger'>${err.message || "Failed to load invoice"}</div>`;
+      }
+    }
+
+    loadInvoice();
+  </script>
+</body>
+</html>

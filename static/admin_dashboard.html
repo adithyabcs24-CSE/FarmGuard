@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - LocalServe</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .admin-nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 2px solid var(--surface-border);
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .admin-nav-tabs button {
+      background: none;
+      border: none;
+      padding: 0.65rem 1.1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--secondary);
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+    }
+    .admin-nav-tabs button:hover {
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+    .admin-nav-tabs button.active {
+      color: var(--primary);
+      border-bottom: 3px solid var(--primary);
+      background: var(--primary-light);
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .metric-card .title {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .metric-card .value {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin: 0.35rem 0 0.15rem 0;
+    }
+    .metric-card .desc {
+      font-size: 0.8rem;
+      color: var(--secondary);
+    }
+    .table-responsive {
+      overflow-x: auto;
+    }
+    .badge-blocked {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .badge-active {
+      background: #dcfce7;
+      color: #15803d;
+    }
+    .badge-suspended {
+      background: #fef2f2;
+      color: #991b1b;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1>Platform Administration Console</h1>
+        <p class="subtitle">Platform oversight, dynamic analytics, user controls, and dispute resolution</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-secondary btn-sm" onclick="refreshCurrentTab()">↻ Refresh Data</button>
+      </div>
+    </div>
+
+    <div id="admin-alert"></div>
+
+    <!-- Navigation Tabs -->
+    <div class="admin-nav-tabs">
+      <button class="active" onclick="switchTab('analytics')">📊 Live Analytics</button>
+      <button onclick="switchTab('users')">👥 User Accounts</button>
+      <button onclick="switchTab('providers')">🛠️ Providers & Suspension</button>
+      <button onclick="switchTab('categories')">📁 Service Categories</button>
+      <button onclick="switchTab('bookings')">📅 Bookings Oversight</button>
+      <button onclick="switchTab('complaints')">⚠️ Complaints & Disputes</button>
+      <button onclick="switchTab('payments')">💳 Payments Ledger</button>
+    </div>
+
+    <!-- 1. Live Analytics Tab -->
+    <div id="tab-analytics" class="tab-content active">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="title">Total Revenue</div>
+          <div class="value" id="stat-revenue">₹0.00</div>
+          <div class="desc">Sum of completed booking invoices</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">Avg Booking Value</div>
+          <div class="value" id="stat-avg-value">₹0.00</div>
+          <div class="desc">Average completed service price</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">Cancellation Rate</div>
+          <div class="value" id="stat-cancellation">0.0%</div>
+          <div class="desc" id="stat-cancel-breakdown">0 cancelled / 0 total</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">Top Category</div>
+          <div class="value" id="stat-top-category" style="font-size: 1.4rem;">-</div>
+          <div class="desc">Most requested service category</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">Most Active Area</div>
+          <div class="value" id="stat-active-area" style="font-size: 1.4rem;">-</div>
+          <div class="desc">Top booking location address</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 1rem;">
+        <h3>Platform Volume Breakdown</h3>
+        <div style="display: flex; gap: 2rem; margin-top: 1rem; flex-wrap: wrap;">
+          <div>
+            <div style="font-size: 0.9rem; color: var(--text-muted);">Total Bookings Created</div>
+            <div style="font-size: 1.6rem; font-weight: 700;" id="stat-total-bookings">0</div>
+          </div>
+          <div>
+            <div style="font-size: 0.9rem; color: var(--text-muted);">Successfully Completed</div>
+            <div style="font-size: 1.6rem; font-weight: 700; color: var(--success);" id="stat-completed-bookings">0</div>
+          </div>
+          <div>
+            <div style="font-size: 0.9rem; color: var(--text-muted);">Cancelled Bookings</div>
+            <div style="font-size: 1.6rem; font-weight: 700; color: var(--danger);" id="stat-cancelled-bookings">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Users Tab -->
+    <div id="tab-users" class="tab-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <h3 style="margin: 0;">User Accounts Management</h3>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <label style="font-size: 0.85rem; color: var(--secondary);">Filter Role:</label>
+            <select id="user-role-filter" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;" onchange="renderUsersTable()">
+              <option value="">All Roles</option>
+              <option value="customer">Customers</option>
+              <option value="provider">Providers</option>
+              <option value="admin">Admins</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email / Phone</th>
+                <th>Role</th>
+                <th>Account Status</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="7" style="text-align: center; padding: 2rem;">Loading users...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Providers Tab -->
+    <div id="tab-providers" class="tab-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <h3 style="margin: 0;">Provider Oversight & Suspensions</h3>
+            <p class="subtitle" style="margin: 0; font-size: 0.85rem;">Approve credentials, reject submissions, or suspend bad actors from receiving new bookings.</p>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Provider</th>
+                <th>Verification</th>
+                <th>Metrics</th>
+                <th>Documents</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="providers-tbody">
+              <tr><td colspan="5" style="text-align: center; padding: 2rem;">Loading providers...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Categories Tab -->
+    <div id="tab-categories" class="tab-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <h3 style="margin: 0;">Service Categories</h3>
+          <button class="btn btn-primary btn-sm" onclick="openCategoryModal()">+ Add New Category</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Icon</th>
+                <th>Category Name</th>
+                <th>Description</th>
+                <th>Active Services</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="categories-tbody">
+              <tr><td colspan="5" style="text-align: center; padding: 2rem;">Loading categories...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Bookings Tab -->
+    <div id="tab-bookings" class="tab-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <h3 style="margin: 0;">Bookings Oversight</h3>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <label style="font-size: 0.85rem; color: var(--secondary);">Filter Status:</label>
+            <select id="booking-status-filter" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;" onchange="loadBookings()">
+              <option value="">All Statuses</option>
+              <option value="REQUESTED">Requested</option>
+              <option value="ACCEPTED">Accepted</option>
+              <option value="ON_THE_WAY">On The Way</option>
+              <option value="ARRIVED">Arrived</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Customer / Provider</th>
+                <th>Service & Category</th>
+                <th>Scheduled Time</th>
+                <th>Price / Invoice</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bookings-tbody">
+              <tr><td colspan="7" style="text-align: center; padding: 2rem;">Loading bookings...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Complaints Tab -->
+    <div id="tab-complaints" class="tab-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <h3 style="margin: 0;">Complaints & Dispute Resolution</h3>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Ticket #</th>
+                <th>Booking #</th>
+                <th>Filed By</th>
+                <th>Reason / Description</th>
+                <th>Status</th>
+                <th>Admin Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="complaints-tbody">
+              <tr><td colspan="7" style="text-align: center; padding: 2rem;">Loading complaints...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Payments Tab -->
+    <div id="tab-payments" class="tab-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <h3 style="margin: 0;">Payments Ledger</h3>
+            <p class="subtitle" style="margin: 0; font-size: 0.85rem;">Read-only transactions ledger across all completed service bookings.</p>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Txn ID</th>
+                <th>Booking ID</th>
+                <th>Amount (₹)</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Payment Date</th>
+              </tr>
+            </thead>
+            <tbody id="payments-tbody">
+              <tr><td colspan="6" style="text-align: center; padding: 2rem;">Loading payments...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modals -->
+
+  <!-- Block/Unblock Modal -->
+  <div id="user-block-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="block-modal-title">Update User Status</h3>
+        <button class="close-btn" onclick="closeModal('user-block-modal')">&times;</button>
+      </div>
+      <form id="user-block-form">
+        <input type="hidden" id="block-user-id">
+        <input type="hidden" id="block-target-state">
+        <p id="block-modal-desc" style="margin-bottom: 1rem;"></p>
+        <div class="form-group">
+          <label for="block-admin-notes">Administrative Reason / Notes</label>
+          <textarea id="block-admin-notes" class="form-control" rows="3" placeholder="Reason for blocking/unblocking..."></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('user-block-modal')">Cancel</button>
+          <button type="submit" id="confirm-block-btn" class="btn btn-danger btn-sm">Confirm</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Category Create/Edit Modal -->
+  <div id="category-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="category-modal-title">Create Service Category</h3>
+        <button class="close-btn" onclick="closeModal('category-modal')">&times;</button>
+      </div>
+      <form id="category-form">
+        <input type="hidden" id="category-id">
+        <div class="form-group">
+          <label for="category-name">Category Name *</label>
+          <input type="text" id="category-name" class="form-control" required placeholder="e.g. Electrical, Carpentry, Cleaning">
+        </div>
+        <div class="form-group">
+          <label for="category-icon">Icon (Emoji) *</label>
+          <input type="text" id="category-icon" class="form-control" required placeholder="e.g. ⚡, 🪚, 🧹">
+        </div>
+        <div class="form-group">
+          <label for="category-desc">Description</label>
+          <textarea id="category-desc" class="form-control" rows="3" placeholder="Brief summary of services in this category"></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('category-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Force Cancel Booking Modal -->
+  <div id="cancel-booking-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Admin Force-Cancel Booking</h3>
+        <button class="close-btn" onclick="closeModal('cancel-booking-modal')">&times;</button>
+      </div>
+      <form id="cancel-booking-form">
+        <input type="hidden" id="cancel-booking-id">
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+          This will immediately cancel the booking and notify both customer and provider.
+        </p>
+        <div class="form-group">
+          <label for="cancel-reason">Administrative Cancellation Reason *</label>
+          <textarea id="cancel-reason" class="form-control" rows="3" required placeholder="State why this booking is being forcefully cancelled by administration..."></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('cancel-booking-modal')">Close</button>
+          <button type="submit" class="btn btn-danger btn-sm">Confirm Force Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Complaint Action Modal -->
+  <div id="complaint-action-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="complaint-modal-title">Resolve Complaint Ticket</h3>
+        <button class="close-btn" onclick="closeModal('complaint-action-modal')">&times;</button>
+      </div>
+      <form id="complaint-action-form">
+        <input type="hidden" id="action-complaint-id">
+        <div class="form-group">
+          <label for="complaint-status-select">Status Action *</label>
+          <select id="complaint-status-select" class="form-control" required>
+            <option value="investigating">Investigating (Under Active Review)</option>
+            <option value="resolved">Resolved (Issue Addressed & Settled)</option>
+            <option value="dismissed">Dismissed (No Action Required)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="complaint-admin-notes">Resolution / Admin Notes *</label>
+          <textarea id="complaint-admin-notes" class="form-control" rows="4" required placeholder="Document the investigation findings, resolution details, or reason for dismissal..."></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('complaint-action-modal')">Close</button>
+          <button type="submit" class="btn btn-primary btn-sm">Update Complaint</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/nav.js"></script>
+  <script>
+    const adminUser = auth.requireAuth(["admin"]);
+    if (!adminUser) throw new Error("Admin authorization required");
+
+    let currentTab = "analytics";
+    let cachedUsers = [];
+    let cachedProviders = [];
+    let cachedCategories = [];
+    let cachedBookings = [];
+    let cachedComplaints = [];
+
+    function switchTab(tabId) {
+      currentTab = tabId;
+      document.querySelectorAll(".admin-nav-tabs button").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+
+      const activeBtn = Array.from(document.querySelectorAll(".admin-nav-tabs button")).find(b => b.getAttribute("onclick").includes(tabId));
+      if (activeBtn) activeBtn.classList.add("active");
+
+      const activeContent = document.getElementById(`tab-${tabId}`);
+      if (activeContent) activeContent.classList.add("active");
+
+      refreshCurrentTab();
+    }
+
+    function refreshCurrentTab() {
+      showAlert("");
+      if (currentTab === "analytics") loadAnalytics();
+      else if (currentTab === "users") loadUsers();
+      else if (currentTab === "providers") loadProviders();
+      else if (currentTab === "categories") loadCategories();
+      else if (currentTab === "bookings") loadBookings();
+      else if (currentTab === "complaints") loadComplaints();
+      else if (currentTab === "payments") loadPayments();
+    }
+
+    function showAlert(msg, isError = false) {
+      const alertEl = document.getElementById("admin-alert");
+      if (!msg) {
+        alertEl.innerHTML = "";
+        return;
+      }
+      alertEl.innerHTML = `<div class="alert ${isError ? 'alert-danger' : 'alert-success'}">${msg}</div>`;
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = "none";
+    }
+
+    // -------------------------------------------------------------
+    // 1. Live Analytics
+    // -------------------------------------------------------------
+    async function loadAnalytics() {
+      try {
+        const data = await api.get("/api/admin/analytics");
+        document.getElementById("stat-revenue").textContent = `₹${data.total_revenue.toFixed(2)}`;
+        document.getElementById("stat-avg-value").textContent = `₹${data.avg_booking_value.toFixed(2)}`;
+        document.getElementById("stat-cancellation").textContent = `${data.cancellation_rate_percent}%`;
+        document.getElementById("stat-cancel-breakdown").textContent = `${data.cancelled_bookings} cancelled / ${data.total_bookings} total`;
+        document.getElementById("stat-top-category").textContent = data.most_requested_category || "None";
+        document.getElementById("stat-active-area").textContent = data.most_active_service_area || "None";
+
+        document.getElementById("stat-total-bookings").textContent = data.total_bookings;
+        document.getElementById("stat-completed-bookings").textContent = data.completed_bookings;
+        document.getElementById("stat-cancelled-bookings").textContent = data.cancelled_bookings;
+      } catch (err) {
+        showAlert(err.message || "Failed to load live analytics", true);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 2. Users Management
+    // -------------------------------------------------------------
+    async function loadUsers() {
+      const tbody = document.getElementById("users-tbody");
+      try {
+        cachedUsers = await api.get("/api/admin/users");
+        renderUsersTable();
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="color: var(--danger); text-align: center;">${err.message}</td></tr>`;
+      }
+    }
+
+    function renderUsersTable() {
+      const tbody = document.getElementById("users-tbody");
+      const roleFilter = document.getElementById("user-role-filter").value;
+
+      let filtered = cachedUsers;
+      if (roleFilter) {
+        filtered = cachedUsers.filter(u => u.role === roleFilter);
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem;">No users found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(u => {
+        const isSelf = u.id === adminUser.id;
+        const statusBadge = u.is_blocked
+          ? `<span class="badge badge-blocked">BLOCKED</span>`
+          : `<span class="badge badge-active">ACTIVE</span>`;
+
+        let actionBtn = "";
+        if (isSelf) {
+          actionBtn = `<small style="color: var(--text-muted);">(Current Admin)</small>`;
+        } else if (u.is_blocked) {
+          actionBtn = `<button class="btn btn-success btn-sm" onclick="openBlockModal(${u.id}, '${u.name}', false)">Unblock</button>`;
+        } else {
+          actionBtn = `<button class="btn btn-danger btn-sm" onclick="openBlockModal(${u.id}, '${u.name}', true)">Block</button>`;
+        }
+
+        return `
+          <tr>
+            <td><strong>#${u.id}</strong></td>
+            <td><strong>${u.name}</strong></td>
+            <td>${u.email}<br><small style="color: var(--text-muted);">${u.phone || "No phone"}</small></td>
+            <td><span class="badge" style="background: #e0f2fe; color: #0369a1;">${u.role.toUpperCase()}</span></td>
+            <td>${statusBadge}</td>
+            <td><small>${new Date(u.created_at).toLocaleDateString()}</small></td>
+            <td>${actionBtn}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function openBlockModal(userId, userName, shouldBlock) {
+      document.getElementById("block-user-id").value = userId;
+      document.getElementById("block-target-state").value = shouldBlock ? "true" : "false";
+      document.getElementById("block-modal-title").textContent = shouldBlock ? `Block User: ${userName}` : `Unblock User: ${userName}`;
+      document.getElementById("block-modal-desc").textContent = shouldBlock
+        ? `Are you sure you want to block ${userName}? Blocked users cannot authenticate or access the platform.`
+        : `Are you sure you want to restore access for ${userName}?`;
+      document.getElementById("block-admin-notes").value = "";
+
+      const btn = document.getElementById("confirm-block-btn");
+      btn.className = shouldBlock ? "btn btn-danger btn-sm" : "btn btn-success btn-sm";
+      btn.textContent = shouldBlock ? "Confirm Block" : "Confirm Unblock";
+
+      document.getElementById("user-block-modal").style.display = "flex";
+    }
+
+    document.getElementById("user-block-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const userId = document.getElementById("block-user-id").value;
+      const isBlocked = document.getElementById("block-target-state").value === "true";
+      const notes = document.getElementById("block-admin-notes").value.trim();
+
+      try {
+        const res = await api.put(`/api/admin/users/${userId}/block`, {
+          is_blocked: isBlocked,
+          admin_notes: notes || null
+        });
+        closeModal("user-block-modal");
+        showAlert(res.message);
+        loadUsers();
+      } catch (err) {
+        alert(err.message || "Failed to update user block status");
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 3. Providers & Suspension
+    // -------------------------------------------------------------
+    async function loadProviders() {
+      const tbody = document.getElementById("providers-tbody");
+      try {
+        cachedProviders = await api.get("/api/admin/providers");
+        if (cachedProviders.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem;">No providers registered.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = cachedProviders.map(p => {
+          let docsHtml = "<span style='color: var(--text-muted); font-size: 0.85rem;'>None</span>";
+          if (p.verification_documents_json) {
+            try {
+              const docs = JSON.parse(p.verification_documents_json);
+              if (Array.isArray(docs) && docs.length > 0) {
+                docsHtml = docs.map(d => `<div style="display:inline-block; background:var(--bg); border:1px solid var(--surface-border); padding:2px 6px; border-radius:4px; font-size:0.75rem; margin:2px;">📄 ${d}</div>`).join("");
+              }
+            } catch (e) {
+              docsHtml = p.verification_documents_json;
+            }
+          }
+
+          let badgeClass = "badge-pending";
+          if (p.verification_status === "approved") badgeClass = "badge-approved";
+          else if (p.verification_status === "rejected") badgeClass = "badge-suspended";
+
+          return `
+            <tr>
+              <td>
+                <strong>${p.name}</strong><br>
+                <small style="color: var(--text-muted);">${p.email} • ${p.phone || "No phone"}</small><br>
+                <a href="/provider_profile.html?id=${p.id}" target="_blank" style="font-size:0.8rem; color:var(--primary);">View Public Profile ↗</a>
+              </td>
+              <td>
+                <span class="badge ${badgeClass}">${p.verification_status.toUpperCase()}</span>
+              </td>
+              <td>
+                ${p.experience_years} yrs exp<br>
+                <small style="color: #b45309; font-weight: 700;">⭐ ${p.avg_rating.toFixed(1)} (${p.jobs_completed} jobs)</small>
+              </td>
+              <td style="max-width: 200px;">
+                ${docsHtml}
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                  <button class="btn btn-success btn-sm" onclick="setProviderVerification(${p.id}, 'approved')">✓ Approve</button>
+                  <button class="btn btn-secondary btn-sm" onclick="setProviderVerification(${p.id}, 'rejected')">✕ Reject</button>
+                  <button class="btn btn-danger btn-sm" onclick="suspendProviderAccount(${p.id}, '${p.name}')">🚫 Suspend</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" style="color: var(--danger); text-align: center;">${err.message}</td></tr>`;
+      }
+    }
+
+    async function setProviderVerification(providerId, statusVal) {
+      try {
+        const res = await api.put(`/api/admin/providers/${providerId}/verification`, { status: statusVal });
+        showAlert(res.message);
+        loadProviders();
+      } catch (err) {
+        showAlert(err.message || "Failed to update verification", true);
+      }
+    }
+
+    async function suspendProviderAccount(providerId, providerName) {
+      if (!confirm(`Are you sure you want to SUSPEND provider '${providerName}'? Their verification status will be forced to 'rejected' and they will be blocked from receiving any new bookings.`)) {
+        return;
+      }
+      try {
+        const res = await api.put(`/api/admin/providers/${providerId}/suspend`, {});
+        showAlert(res.message);
+        loadProviders();
+      } catch (err) {
+        showAlert(err.message || "Failed to suspend provider", true);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 4. Categories CRUD
+    // -------------------------------------------------------------
+    async function loadCategories() {
+      const tbody = document.getElementById("categories-tbody");
+      try {
+        cachedCategories = await api.get("/api/admin/categories");
+        if (cachedCategories.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem;">No categories found.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = cachedCategories.map(c => `
+          <tr>
+            <td style="font-size: 1.5rem;">${c.icon}</td>
+            <td><strong>${c.name}</strong></td>
+            <td style="color: var(--secondary); max-width: 300px;">${c.description || "No description"}</td>
+            <td><span class="badge" style="background: var(--bg);">${c.service_count} services</span></td>
+            <td>
+              <div style="display: flex; gap: 0.4rem;">
+                <button class="btn btn-secondary btn-sm" onclick="openEditCategoryModal(${c.id})">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteCategory(${c.id}, '${c.name}', ${c.service_count})">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `).join("");
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" style="color: var(--danger); text-align: center;">${err.message}</td></tr>`;
+      }
+    }
+
+    function openCategoryModal() {
+      document.getElementById("category-id").value = "";
+      document.getElementById("category-modal-title").textContent = "Create Service Category";
+      document.getElementById("category-name").value = "";
+      document.getElementById("category-icon").value = "";
+      document.getElementById("category-desc").value = "";
+      document.getElementById("category-modal").style.display = "flex";
+    }
+
+    function openEditCategoryModal(catId) {
+      const c = cachedCategories.find(x => x.id === catId);
+      if (!c) return;
+      document.getElementById("category-id").value = c.id;
+      document.getElementById("category-modal-title").textContent = `Edit Category: ${c.name}`;
+      document.getElementById("category-name").value = c.name;
+      document.getElementById("category-icon").value = c.icon;
+      document.getElementById("category-desc").value = c.description || "";
+      document.getElementById("category-modal").style.display = "flex";
+    }
+
+    document.getElementById("category-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const catId = document.getElementById("category-id").value;
+      const name = document.getElementById("category-name").value.trim();
+      const icon = document.getElementById("category-icon").value.trim();
+      const description = document.getElementById("category-desc").value.trim();
+
+      try {
+        if (catId) {
+          await api.put(`/api/admin/categories/${catId}`, { name, icon, description });
+          showAlert("Category updated successfully.");
+        } else {
+          await api.post("/api/admin/categories", { name, icon, description });
+          showAlert("Category created successfully.");
+        }
+        closeModal("category-modal");
+        loadCategories();
+      } catch (err) {
+        alert(err.message || "Failed to save category");
+      }
+    });
+
+    async function deleteCategory(catId, catName, serviceCount) {
+      if (!confirm(`Are you sure you want to delete category '${catName}'? This will remove the category and its ${serviceCount} catalog services.`)) {
+        return;
+      }
+      try {
+        const res = await api.delete(`/api/admin/categories/${catId}`);
+        showAlert(res.message);
+        loadCategories();
+      } catch (err) {
+        showAlert(err.message || "Failed to delete category", true);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 5. Bookings Oversight & Force-Cancel
+    // -------------------------------------------------------------
+    async function loadBookings() {
+      const tbody = document.getElementById("bookings-tbody");
+      const statusFilter = document.getElementById("booking-status-filter").value;
+      try {
+        let url = "/api/admin/bookings";
+        if (statusFilter) url += `?status_filter=${statusFilter}`;
+        cachedBookings = await api.get(url);
+
+        if (cachedBookings.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem;">No bookings found.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = cachedBookings.map(b => {
+          const badgeClass = `badge-status-${b.status}`;
+          const isTerminal = b.status === "COMPLETED" || b.status === "CANCELLED";
+
+          let cancelReasonHtml = "";
+          if (b.cancellation_reason) {
+            cancelReasonHtml = `<div style="font-size:0.75rem; color:var(--danger); margin-top:2px;">Reason: ${b.cancellation_reason}</div>`;
+          }
+
+          let actionBtn = "";
+          if (!isTerminal) {
+            actionBtn = `<button class="btn btn-danger btn-sm" onclick="openCancelBookingModal(${b.id})">Force Cancel</button>`;
+          } else if (b.status === "COMPLETED" && b.invoice) {
+            actionBtn = `<a href="/invoice.html?booking_id=${b.id}" target="_blank" class="btn btn-secondary btn-sm">View Invoice</a>`;
+          }
+
+          return `
+            <tr>
+              <td><strong>#${b.id}</strong></td>
+              <td>
+                <strong>${b.customer_name}</strong><br>
+                <small style="color: var(--secondary);">Provider: ${b.provider_name}</small>
+              </td>
+              <td>
+                <strong>${b.service_name}</strong><br>
+                <small style="color: var(--text-muted);">${b.category_name}</small>
+              </td>
+              <td>${b.scheduled_date}<br><small>${b.scheduled_time}</small></td>
+              <td>
+                ${b.final_price ? `<strong style="color:var(--primary);">₹${b.final_price}</strong>` : `₹${b.price_estimate_min}-₹${b.price_estimate_max}`}
+              </td>
+              <td>
+                <span class="badge ${badgeClass}">${b.status.replace(/_/g, " ")}</span>
+                ${cancelReasonHtml}
+              </td>
+              <td>${actionBtn}</td>
+            </tr>
+          `;
+        }).join("");
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="color: var(--danger); text-align: center;">${err.message}</td></tr>`;
+      }
+    }
+
+    function openCancelBookingModal(bookingId) {
+      document.getElementById("cancel-booking-id").value = bookingId;
+      document.getElementById("cancel-reason").value = "";
+      document.getElementById("cancel-booking-modal").style.display = "flex";
+    }
+
+    document.getElementById("cancel-booking-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const bookingId = document.getElementById("cancel-booking-id").value;
+      const reason = document.getElementById("cancel-reason").value.trim();
+
+      try {
+        await api.put(`/api/admin/bookings/${bookingId}/cancel`, { reason });
+        closeModal("cancel-booking-modal");
+        showAlert(`Booking #${bookingId} forcefully cancelled.`);
+        loadBookings();
+      } catch (err) {
+        alert(err.message || "Failed to force cancel booking");
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 6. Complaints & Disputes
+    // -------------------------------------------------------------
+    async function loadComplaints() {
+      const tbody = document.getElementById("complaints-tbody");
+      try {
+        cachedComplaints = await api.get("/api/complaints");
+        if (cachedComplaints.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem;">No complaint tickets filed.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = cachedComplaints.map(c => {
+          let badgeClass = "badge-pending";
+          if (c.status === "resolved") badgeClass = "badge-approved";
+          else if (c.status === "dismissed") badgeClass = "badge-rejected";
+          else if (c.status === "investigating") badgeClass = "badge-info";
+
+          return `
+            <tr>
+              <td><strong>#${c.id}</strong></td>
+              <td><a href="/my_bookings.html" target="_blank">Booking #${c.booking_id}</a></td>
+              <td>${c.filed_by_name}</td>
+              <td style="max-width: 250px;">
+                <strong>${c.reason}</strong>
+                <div style="font-size:0.8rem; color:var(--secondary); margin-top:2px;">${c.description}</div>
+              </td>
+              <td><span class="badge ${badgeClass}">${c.status.toUpperCase()}</span></td>
+              <td style="font-size:0.85rem; color:var(--text-muted); max-width:200px;">${c.admin_notes || "None"}</td>
+              <td>
+                <button class="btn btn-secondary btn-sm" onclick="openComplaintActionModal(${c.id}, '${c.status}', '${(c.admin_notes || '').replace(/'/g, "\\'")}')">Take Action</button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="color: var(--danger); text-align: center;">${err.message}</td></tr>`;
+      }
+    }
+
+    function openComplaintActionModal(complaintId, currentStatus, currentNotes) {
+      document.getElementById("action-complaint-id").value = complaintId;
+      document.getElementById("complaint-modal-title").textContent = `Action on Ticket #${complaintId}`;
+      document.getElementById("complaint-status-select").value = currentStatus !== "open" ? currentStatus : "investigating";
+      document.getElementById("complaint-admin-notes").value = currentNotes;
+      document.getElementById("complaint-action-modal").style.display = "flex";
+    }
+
+    document.getElementById("complaint-action-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const complaintId = document.getElementById("action-complaint-id").value;
+      const status = document.getElementById("complaint-status-select").value;
+      const admin_notes = document.getElementById("complaint-admin-notes").value.trim();
+
+      try {
+        await api.put(`/api/admin/complaints/${complaintId}/action`, { status, admin_notes });
+        closeModal("complaint-action-modal");
+        showAlert(`Complaint #${complaintId} updated to '${status}'.`);
+        loadComplaints();
+      } catch (err) {
+        alert(err.message || "Failed to update complaint");
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 7. Payments Ledger
+    // -------------------------------------------------------------
+    async function loadPayments() {
+      const tbody = document.getElementById("payments-tbody");
+      try {
+        const payments = await api.get("/api/admin/payments");
+        if (payments.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem;">No payment transactions recorded yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = payments.map(p => `
+          <tr>
+            <td><code>${p.mock_transaction_id}</code></td>
+            <td><strong>#${p.booking_id}</strong></td>
+            <td style="font-weight: 700; color: var(--primary);">₹${p.amount.toFixed(2)}</td>
+            <td><span class="badge" style="background:#f1f5f9; text-transform:uppercase;">${p.method}</span></td>
+            <td><span class="badge badge-approved">${p.status.toUpperCase()}</span></td>
+            <td><small>${p.paid_at ? new Date(p.paid_at).toLocaleString() : "-"}</small></td>
+          </tr>
+        `).join("");
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="color: var(--danger); text-align: center;">${err.message}</td></tr>`;
+      }
+    }
+
+    // Initial load
+    loadAnalytics();
+  </script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complaints & Dispute Resolution - LocalServe</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1 id="page-title">Complaints & Support Tickets</h1>
+        <p class="subtitle">Report issues with services, track dispute resolution, and view admin updates</p>
+      </div>
+      <button class="btn btn-primary" onclick="openFileComplaintModal()">+ File a Complaint</button>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <div id="complaints-list">
+      <div style="text-align: center; padding: 3rem;">Loading complaints...</div>
+    </div>
+  </main>
+
+  <!-- File Complaint Modal -->
+  <div id="complaint-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>File a Service Complaint</h3>
+        <button class="close-btn" onclick="closeComplaintModal()">&times;</button>
+      </div>
+
+      <div id="modal-alert"></div>
+
+      <form id="complaint-form">
+        <div class="form-group">
+          <label for="complaint-booking-select">Select Relevant Booking *</label>
+          <select id="complaint-booking-select" class="form-control" required>
+            <option value="">-- Choose a Booking --</option>
+          </select>
+          <small style="color: var(--text-muted);">Complaints must be tied to a specific service booking.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="complaint-reason">Reason / Category *</label>
+          <select id="complaint-reason" class="form-control" required>
+            <option value="">-- Select Reason --</option>
+            <option value="Poor Service Quality">Poor Service Quality / Incomplete Work</option>
+            <option value="Overcharging or Billing Discrepancy">Overcharging or Billing Discrepancy</option>
+            <option value="Provider No-Show or Excessive Delay">Provider No-Show or Excessive Delay</option>
+            <option value="Unprofessional or Rude Behavior">Unprofessional or Rude Behavior</option>
+            <option value="Property Damage">Property Damage</option>
+            <option value="Other Service Issue">Other Service Issue</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="complaint-desc">Detailed Description *</label>
+          <textarea id="complaint-desc" class="form-control" placeholder="Explain in detail what went wrong, what was promised vs delivered, and how you want it resolved..." rows="4" required minlength="5"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="complaint-evidence">Evidence URL / Photo Reference (Optional)</label>
+          <input type="text" id="complaint-evidence" class="form-control" placeholder="https://example.com/photo.jpg or screenshot link">
+        </div>
+
+        <button type="submit" id="submit-complaint-btn" class="btn btn-danger" style="width: 100%;">
+          Submit Official Complaint
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/nav.js"></script>
+  <script>
+    const user = auth.requireAuth();
+    if (!user) throw new Error("Auth required");
+
+    let myBookings = [];
+
+    async function loadComplaints() {
+      const container = document.getElementById("complaints-list");
+      try {
+        const endpoint = user.role === "admin" ? "/api/complaints/all" : "/api/complaints/my";
+        const complaints = await api.get(endpoint);
+
+        if (complaints.length === 0) {
+          container.innerHTML = `
+            <div class="card" style="text-align: center; padding: 3rem;">
+              <h3>No complaints filed</h3>
+              <p class="subtitle" style="margin-top: 0.5rem;">There are no active or past complaints recorded.</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = complaints.map(c => {
+          let statusBadgeClass = "badge-warning";
+          if (c.status === "resolved") statusBadgeClass = "badge-success";
+          else if (c.status === "dismissed") statusBadgeClass = "badge-secondary";
+          else if (c.status === "investigating") statusBadgeClass = "badge-info";
+
+          return `
+            <div class="card" style="margin-bottom: 1.25rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                  <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem;">
+                    <h3 style="margin: 0; font-size: 1.15rem;">Ticket #${c.id}: ${c.reason}</h3>
+                    <span class="badge ${statusBadgeClass}">${c.status.toUpperCase()}</span>
+                  </div>
+                  <div style="color: var(--secondary); font-size: 0.85rem;">
+                    Booking Ref: <strong>#${c.booking_id}</strong> • Filed by: <strong>${c.filed_by_name}</strong> • ${new Date(c.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                </div>
+                <a href="/my_bookings.html" class="btn btn-outline btn-sm">View Booking</a>
+              </div>
+
+              <div style="background: var(--bg); border-radius: var(--radius-sm); padding: 0.85rem; margin: 0.85rem 0; font-size: 0.9rem;">
+                <strong>Complaint Details:</strong>
+                <p style="margin-top: 0.25rem; white-space: pre-wrap; color: var(--text-main);">${c.description}</p>
+                ${c.evidence_photo_url ? `
+                  <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+                    <strong>Evidence Reference:</strong> <a href="${c.evidence_photo_url}" target="_blank" style="color: var(--primary);">${c.evidence_photo_url}</a>
+                  </div>
+                ` : ""}
+              </div>
+
+              ${c.admin_notes ? `
+                <div style="background: var(--info-light); border-left: 3px solid var(--info); padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.85rem;">
+                  <strong>Admin Resolution Notes:</strong>
+                  <div style="margin-top: 0.2rem; color: var(--text-main);">${c.admin_notes}</div>
+                </div>
+              ` : `
+                <div style="font-size: 0.8rem; color: var(--text-muted);">
+                  Status: <em>Under review by LocalServe Trust & Safety team</em>
+                </div>
+              `}
+            </div>
+          `;
+        }).join("");
+
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div class="alert alert-danger">Error loading complaints: ${err.message}</div>`;
+      }
+    }
+
+    async function openFileComplaintModal(defaultBookingId = null) {
+      document.getElementById("modal-alert").innerHTML = "";
+      document.getElementById("complaint-form").reset();
+
+      const select = document.getElementById("complaint-booking-select");
+      select.innerHTML = "<option value=''>Loading your bookings...</option>";
+
+      document.getElementById("complaint-modal").style.display = "flex";
+
+      try {
+        if (myBookings.length === 0) {
+          myBookings = await api.get("/api/bookings/my");
+        }
+
+        if (myBookings.length === 0) {
+          select.innerHTML = "<option value=''>No bookings found on your account</option>";
+          return;
+        }
+
+        select.innerHTML = "<option value=''>-- Choose a Booking --</option>" +
+          myBookings.map(b => `
+            <option value="${b.id}" ${defaultBookingId && b.id === Number(defaultBookingId) ? "selected" : ""}>
+              #${b.id} - ${b.service_name} (${b.provider_name}) - ${b.scheduled_date} [${b.status}]
+            </option>
+          `).join("");
+
+        if (defaultBookingId) {
+          select.value = defaultBookingId;
+        }
+
+      } catch (err) {
+        select.innerHTML = `<option value=''>Failed to load bookings</option>`;
+      }
+    }
+
+    function closeComplaintModal() {
+      document.getElementById("complaint-modal").style.display = "none";
+    }
+
+    document.getElementById("complaint-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const bookingId = parseInt(document.getElementById("complaint-booking-select").value);
+      const reason = document.getElementById("complaint-reason").value;
+      const description = document.getElementById("complaint-desc").value.trim();
+      const evidence_photo_url = document.getElementById("complaint-evidence").value.trim() || null;
+
+      const submitBtn = document.getElementById("submit-complaint-btn");
+      const modalAlert = document.getElementById("modal-alert");
+
+      if (!bookingId) {
+        modalAlert.innerHTML = "<div class='alert alert-danger'>Please select a booking.</div>";
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting...";
+
+      try {
+        await api.post("/api/complaints", {
+          booking_id: bookingId,
+          reason,
+          description,
+          evidence_photo_url
+        });
+
+        closeComplaintModal();
+        alert("Complaint filed successfully. LocalServe administration will investigate.");
+        loadComplaints();
+      } catch (err) {
+        modalAlert.innerHTML = `<div class='alert alert-danger'>${err.message || "Failed to submit complaint"}</div>`;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Official Complaint";
+      }
+    });
+
+    // Check if booking_id passed in URL query to auto-open
+    const urlParams = new URLSearchParams(window.location.search);
+    const prefillBookingId = urlParams.get("booking_id");
+
+    loadComplaints().then(() => {
+      if (prefillBookingId) {
+        openFileComplaintModal(prefillBookingId);
+      }
+    });
+  </script>
+</body>
+</html>

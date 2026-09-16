@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About Us — FarmGuard AI</title>
+  <link rel="stylesheet" href="/static/css/farmguard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22><text y=%2226%22 font-size=%2224%22>🌱</text></svg>">
+</head>
+<body style="min-height: 100vh; display: flex; flex-direction: column;">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container header-inner">
+      <a href="/" class="logo">
+        <span class="logo-badge">🌱</span>
+        <span>FarmGuard AI</span>
+      </a>
+
+      <nav class="nav-links mobile-hidden">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/#features" class="nav-link">Features</a>
+        <a href="/#pricing" class="nav-link">Pricing</a>
+        <a href="/about" class="nav-link" style="color: var(--primary);">About</a>
+        <a href="/contact" class="nav-link">Contact</a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <button class="btn btn-outline btn-icon theme-toggle-btn" aria-label="Toggle theme">🌓</button>
+        <div class="auth-nav-slot flex items-center gap-2">
+          <a href="/auth?mode=login" class="btn btn-ghost btn-sm">Login</a>
+          <a href="/auth?mode=signup" class="btn btn-primary btn-sm">Get Started</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- About Content -->
+  <main class="container" style="flex: 1; padding: 4rem 1.25rem; max-width: 850px;">
+    <div class="hero-tag">
+      <span>🌾</span>
+      <span>Our Agronomy Mission</span>
+    </div>
+    <h1 style="font-size: 2.75rem; margin-bottom: 1.5rem; line-height: 1.2;">
+      Empowering farmers to detect crop problems before they spread.
+    </h1>
+
+    <div style="font-size: 1.1rem; color: var(--text-muted); line-height: 1.8; display: flex; flex-direction: column; gap: 1.5rem;">
+      <p>
+        Every year, smallholder and progressive farmers lose up to 35% of their harvest to preventable fungal blights, viral leaf curls, and destructive pest infestations. By the time visual symptoms become widely evident to the untrained eye, extensive crop damage and yield reduction have already taken root.
+      </p>
+
+      <p>
+        <strong>FarmGuard AI</strong> was built to put an intelligent agronomy specialist in the pocket of every farmer. Using instant computer vision heuristics and certified agricultural pathology datasets, our system analyzes crop photos in real-time, identifies the specific pathogen, assigns confidence scores, and provides structured guidance.
+      </p>
+
+      <div class="card" style="border-left: 4px solid var(--primary); margin: 1.5rem 0;">
+        <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--text-main);">Our Core Commitments</h3>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.95rem;">
+          <li>🍃 <strong>Organic First:</strong> We emphasize biological controls, neem formulations, and beneficial soil microbes before synthetic chemistry.</li>
+          <li>🎯 <strong>Targeted Interventions:</strong> When chemical control is necessary, we specify precise dosages and pre-harvest safety intervals (PHI).</li>
+          <li>🗣️ <strong>Multilingual Voice Accessibility:</strong> Clear advisory narration in local regional languages tailored for field conditions.</li>
+        </ul>
+      </div>
+
+      <p>
+        Whether managing a half-acre vegetable garden or overseeing 50 acres of cash crops, FarmGuard AI provides the clarity and tools required to protect your field sustainably.
+      </p>
+
+      <div style="margin-top: 1.5rem;">
+        <a href="/dashboard" class="btn btn-primary btn-lg">Try FarmGuard AI Today →</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container" style="text-align: center; font-size: 0.85rem; color: var(--text-subtle);">
+      © 2026 FarmGuard AI. Built for farmers worldwide.
+    </div>
+  </footer>
+
+  <script src="/static/js/farmguard.js"></script>
+</body>
+</html>

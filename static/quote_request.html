@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Quotes for Complex Jobs - LocalServe</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="container" style="max-width: 720px; margin-top: 1rem; margin-bottom: 3rem;">
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h2>Request Quotes for Complex Jobs</h2>
+        <a href="/customer_dashboard.html" class="btn btn-secondary btn-sm">Cancel</a>
+      </div>
+      <p class="subtitle" style="margin-bottom: 1.5rem;">
+        Invite multiple vetted local providers to submit quotes for your job. When you accept one, the others will be automatically cancelled.
+      </p>
+
+      <div id="alert-box"></div>
+
+      <form id="quote-form">
+        <!-- 1. Category Selection -->
+        <div class="form-group">
+          <label for="category-select">Service Category *</label>
+          <select id="category-select" class="form-control" required onchange="onCategoryChanged()">
+            <option value="">-- Choose Category --</option>
+          </select>
+        </div>
+
+        <!-- 2. Multi-Provider Selection -->
+        <div class="form-group">
+          <label>Select Providers to Invite (Choose at least 2 for quotes) *</label>
+          <div id="providers-checkbox-container" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--surface-border); border-radius: var(--radius-sm); padding: 0.75rem; background: var(--bg);">
+            <div style="color: var(--text-muted); font-size: 0.85rem;">Select a category above to view providers...</div>
+          </div>
+          <small style="color: var(--text-muted); display: block; margin-top: 0.35rem;" id="selected-count-hint">0 providers selected</small>
+        </div>
+
+        <!-- 3. Scheduled Date & Time -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="quote-date">Preferred Date *</label>
+            <input type="date" id="quote-date" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="quote-time">Preferred Time Slot *</label>
+            <select id="quote-time" class="form-control" required>
+              <option value="09:00">09:00 AM (Morning)</option>
+              <option value="11:00">11:00 AM (Late Morning)</option>
+              <option value="14:00" selected>02:00 PM (Afternoon)</option>
+              <option value="16:00">04:00 PM (Late Afternoon)</option>
+              <option value="18:00">06:00 PM (Evening)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 4. Address -->
+        <div class="form-group">
+          <label>Service Address *</label>
+          <div id="addresses-container">
+            <!-- Loaded dynamically -->
+          </div>
+          <div id="inline-address" style="display: none; margin-top: 0.5rem;">
+            <input type="text" id="new-full-address" class="form-control" placeholder="Full service address (door no, street, locality)...">
+          </div>
+        </div>
+
+        <!-- 5. Detailed Problem Description -->
+        <div class="form-group">
+          <label for="problem-desc">Job Scope & Requirements *</label>
+          <textarea id="problem-desc" class="form-control" placeholder="Describe the full scope of work, materials required, square footage, or specific diagnostics needed..." required minlength="10" rows="4"></textarea>
+        </div>
+
+        <button type="submit" id="submit-quote-btn" class="btn btn-primary" style="width: 100%;">
+          ⚡ Request Quotes from Selected Providers
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/nav.js"></script>
+  <script>
+    const user = auth.requireAuth(["customer", "admin"]);
+    if (!user) throw new Error("Customer authorization required");
+
+    // Min date today
+    document.getElementById("quote-date").min = new Date().toISOString().split("T")[0];
+    document.getElementById("quote-date").value = new Date().toISOString().split("T")[0];
+
+    let allProviders = [];
+
+    async function initQuotePage() {
+      try {
+        const [categories, addresses, providers] = await Promise.all([
+          api.get("/api/customers/categories"),
+          api.get("/api/customers/addresses"),
+          api.get("/api/customers/providers")
+        ]);
+
+        allProviders = providers;
+
+        // Categories
+        const catSelect = document.getElementById("category-select");
+        categories.forEach(c => {
+          const opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = c.name;
+          catSelect.appendChild(opt);
+        });
+
+        // Addresses
+        const addrContainer = document.getElementById("addresses-container");
+        if (addresses.length === 0) {
+          addrContainer.innerHTML = "<small style='color:var(--text-muted);'>No saved address found. Enter address below:</small>";
+          document.getElementById("inline-address").style.display = "block";
+        } else {
+          addrContainer.innerHTML = addresses.map((a, idx) => `
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; cursor: pointer; font-size: 0.9rem;">
+              <input type="radio" name="selected_address_id" value="${a.id}" ${idx === 0 ? "checked" : ""}>
+              <span><strong>${a.label}:</strong> ${a.full_address}</span>
+            </label>
+          `).join("");
+        }
+
+        // Check if pre-selected category in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const catId = urlParams.get("category_id");
+        if (catId) {
+          catSelect.value = catId;
+          onCategoryChanged();
+        }
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function onCategoryChanged() {
+      const catId = parseInt(document.getElementById("category-select").value);
+      const container = document.getElementById("providers-checkbox-container");
+
+      if (!catId) {
+        container.innerHTML = "<div style='color: var(--text-muted); font-size: 0.85rem;'>Select a category above to view providers...</div>";
+        return;
+      }
+
+      // Filter providers who offer services in this category (or general providers)
+      const matching = allProviders.filter(p => p.services.some(s => s.category_id === catId) || p.services.length > 0);
+
+      if (matching.length === 0) {
+        container.innerHTML = "<div style='color: var(--danger); font-size: 0.85rem;'>No providers currently offer services in this category.</div>";
+        return;
+      }
+
+      container.innerHTML = matching.map(p => {
+        const vBadge = p.verification_status === "approved" ? "badge-approved" : "badge-pending";
+        return `
+          <label style="display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.5rem; background: white; border-radius: 4px; margin-bottom: 0.4rem; border: 1px solid var(--surface-border); cursor: pointer;">
+            <input type="checkbox" name="invited_providers" value="${p.id}" onchange="updateSelectedCount()" style="margin-top: 3px;">
+            <div style="flex: 1;">
+              <div style="display: flex; justify-content: space-between;">
+                <strong>${p.name}</strong>
+                <span style="color: #b45309; font-weight: 700; font-size: 0.85rem;">⭐ ${p.avg_rating.toFixed(1)}</span>
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+                <span class="badge ${vBadge}" style="font-size: 0.7rem; padding: 1px 5px;">${p.verification_status}</span>
+                ${p.experience_years} yrs exp • ${p.jobs_completed} jobs
+              </div>
+            </div>
+          </label>
+        `;
+      }).join("");
+
+      updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+      const count = document.querySelectorAll("input[name='invited_providers']:checked").length;
+      document.getElementById("selected-count-hint").textContent = `${count} provider(s) selected for quotes`;
+    }
+
+    document.getElementById("quote-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const alertBox = document.getElementById("alert-box");
+      const submitBtn = document.getElementById("submit-quote-btn");
+      alertBox.innerHTML = "";
+
+      const category_id = parseInt(document.getElementById("category-select").value);
+      const checkedProviders = Array.from(document.querySelectorAll("input[name='invited_providers']:checked")).map(c => parseInt(c.value));
+
+      if (checkedProviders.length === 0) {
+        alertBox.innerHTML = "<div class='alert alert-danger'>Please select at least one provider to request quotes.</div>";
+        return;
+      }
+
+      const scheduled_date = document.getElementById("quote-date").value;
+      const scheduled_time = document.getElementById("quote-time").value;
+      const problem_description = document.getElementById("problem-desc").value.trim();
+
+      // Address
+      let address_id = null;
+      let new_full_address = null;
+      const selectedRadio = document.querySelector("input[name='selected_address_id']:checked");
+      if (selectedRadio) {
+        address_id = parseInt(selectedRadio.value);
+      } else {
+        new_full_address = document.getElementById("new-full-address").value.trim();
+        if (!new_full_address) {
+          alertBox.innerHTML = "<div class='alert alert-danger'>Please select or enter a service address.</div>";
+          return;
+        }
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Sending Quote Requests...";
+
+      try {
+        const payload = {
+          category_id,
+          provider_ids: checkedProviders,
+          address_id,
+          new_full_address,
+          new_address_label: "Home",
+          problem_description,
+          scheduled_date,
+          scheduled_time
+        };
+
+        const res = await api.post("/api/bookings/quotes", payload);
+        alertBox.innerHTML = `<div class='alert alert-success'>Successfully requested quotes from ${res.length} providers! Redirecting to your bookings...</div>`;
+        setTimeout(() => {
+          window.location.href = "/my_bookings.html";
+        }, 1200);
+
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "⚡ Request Quotes from Selected Providers";
+        alertBox.innerHTML = `<div class='alert alert-danger'>${err.message || "Failed to submit quote requests"}</div>`;
+      }
+    });
+
+    initQuotePage();
+  </script>
+</body>
+</html>

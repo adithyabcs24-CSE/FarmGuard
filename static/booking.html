@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book a Service - LocalServe</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <main class="container" style="max-width: 680px; margin-top: 1rem; margin-bottom: 3rem;">
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h2>Book a Local Service</h2>
+        <a href="/customer_dashboard.html" class="btn btn-secondary btn-sm">Cancel</a>
+      </div>
+      <p class="subtitle" style="margin-bottom: 1.5rem;">Choose a service, select an available date/time slot, and confirm your request</p>
+
+      <div id="alert-box"></div>
+
+      <form id="booking-form">
+        <!-- Emergency Mode Toggle -->
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.25rem;">
+          <label style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; margin: 0;">
+            <input type="checkbox" id="is-emergency-toggle" onchange="toggleEmergencyMode()" style="margin-top: 3px;">
+            <div>
+              <strong style="color: #991b1b;">🚨 Flag as Emergency Request</strong>
+              <div style="font-size: 0.8rem; color: #b91c1c; margin-top: 2px;">
+                Needs immediate response (pipe burst, sparks, gas leakage). This will broadcast simultaneously to all verified providers in your area. The first provider to accept locks the booking!
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <!-- 1. Provider & Category Summary -->
+        <div id="provider-summary-box" style="background: var(--bg); border: 1px solid var(--surface-border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 id="prov-name-display" style="margin: 0; font-size: 1.1rem;">Selected Provider</h3>
+              <small id="prov-meta-display" style="color: var(--text-muted);">Loading provider details...</small>
+            </div>
+            <div id="prov-rating-display" class="rating-badge">⭐ 0.0</div>
+          </div>
+        </div>
+
+        <!-- 2. Service Selection -->
+        <div class="form-group">
+          <label for="service-select">Select Service *</label>
+          <select id="service-select" class="form-control" required onchange="onServiceChanged()">
+            <option value="">-- Choose a Service --</option>
+          </select>
+          <div id="price-estimate-box" style="margin-top: 0.4rem; font-size: 0.85rem; color: var(--primary); font-weight: 600;"></div>
+        </div>
+
+        <!-- 3. Scheduled Date & Available Slot Selection -->
+        <div id="slot-selection-container">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label for="scheduled-date">Scheduled Date *</label>
+              <input type="date" id="scheduled-date" class="form-control" onchange="onDateChanged()">
+            </div>
+
+            <div class="form-group">
+              <label for="scheduled-time-select">Available Time Slot *</label>
+              <select id="scheduled-time-select" class="form-control">
+                <option value="">-- Select Date First --</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="availability-hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: -0.5rem; margin-bottom: 1rem;"></div>
+
+          <!-- Recurring Schedule Selection -->
+          <div class="form-group">
+            <label for="recurring-select">Recurring Schedule (Auto-spawns next occurrence upon completion)</label>
+            <select id="recurring-select" class="form-control">
+              <option value="">No (One-Time Booking)</option>
+              <option value="weekly">Weekly (Next occurrence auto-scheduled +7 days)</option>
+              <option value="biweekly">Bi-weekly (Next occurrence auto-scheduled +14 days)</option>
+              <option value="monthly">Monthly (Next occurrence auto-scheduled +28 days)</option>
+            </select>
+            <small style="color: var(--text-muted); font-size: 0.8rem;">
+              When completed, exactly one next occurrence in REQUESTED status will be scheduled automatically.
+            </small>
+          </div>
+        </div>
+
+        <!-- 4. Address Selection -->
+        <div class="form-group">
+          <label>Service Address *</label>
+          <div id="saved-addresses-container" style="margin-bottom: 0.5rem;">
+            <!-- Saved addresses radio options -->
+          </div>
+
+          <div id="new-address-toggle" style="margin-top: 0.5rem;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleNewAddress()">+ Add New Address</button>
+          </div>
+
+          <div id="new-address-fields" style="display: none; margin-top: 0.75rem; border: 1px dashed var(--surface-border); padding: 0.75rem; border-radius: var(--radius-sm);">
+            <div class="form-group">
+              <label for="new-address-label">Address Label</label>
+              <input type="text" id="new-address-label" class="form-control" placeholder="Home, Office, Apartment...">
+            </div>
+            <div class="form-group">
+              <label for="new-address-full">Full Address Details</label>
+              <textarea id="new-address-full" class="form-control" placeholder="Door/Flat No, Street, Landmark, Pincode"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Problem Description -->
+        <div class="form-group">
+          <label for="problem-desc">Describe the Problem / Scope of Work *</label>
+          <textarea id="problem-desc" class="form-control" placeholder="Please describe what needs to be fixed or installed..." required minlength="5"></textarea>
+        </div>
+
+        <!-- 6. Estimated Price Summary & Submit -->
+        <div id="price-summary-card" style="background: var(--surface); border: 1px solid var(--primary); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong>Estimated Price Range:</strong>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">Final price confirmed after job completion.</div>
+            </div>
+            <div id="total-estimate-display" style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">
+              ₹0 - ₹0
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="submit-booking-btn" class="btn btn-primary" style="width: 100%;">
+          Confirm & Send Booking Request
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/nav.js"></script>
+  <script>
+    // Enforce customer auth
+    const currentUser = auth.requireAuth(["customer", "admin"]);
+    if (!currentUser) throw new Error("Auth required");
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let providerId = urlParams.get("provider_id");
+    let prefillServiceId = urlParams.get("service_id");
+    let prefillAddressId = urlParams.get("address_id");
+    const repeatBookingId = urlParams.get("repeat_booking_id");
+
+    let providerData = null;
+    let userAddresses = [];
+
+    // Set minimum date to today
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("scheduled-date").min = today;
+
+    function toggleEmergencyMode() {
+      const isEmergency = document.getElementById("is-emergency-toggle").checked;
+      const slotContainer = document.getElementById("slot-selection-container");
+      const provBox = document.getElementById("provider-summary-box");
+      const submitBtn = document.getElementById("submit-booking-btn");
+
+      if (isEmergency) {
+        slotContainer.style.display = "none";
+        document.getElementById("scheduled-date").required = false;
+        document.getElementById("scheduled-time-select").required = false;
+        provBox.style.display = "none";
+        submitBtn.className = "btn btn-danger";
+        submitBtn.textContent = "🚨 Broadcast Emergency Request Immediately";
+      } else {
+        slotContainer.style.display = "block";
+        document.getElementById("scheduled-date").required = true;
+        document.getElementById("scheduled-time-select").required = true;
+        provBox.style.display = "block";
+        submitBtn.className = "btn btn-primary";
+        submitBtn.textContent = "Confirm & Send Booking Request";
+      }
+    }
+
+    async function initBookingPage() {
+      // If repeat booking requested, fetch original booking details
+      if (repeatBookingId) {
+        try {
+          const oldBooking = await api.get(`/api/bookings/${repeatBookingId}`);
+          if (oldBooking) {
+            if (!providerId) providerId = oldBooking.provider_id;
+            if (!prefillServiceId) prefillServiceId = oldBooking.service_id;
+            if (!prefillAddressId) prefillAddressId = oldBooking.address_id;
+
+            const descInput = document.getElementById("problem-desc");
+            if (descInput && !descInput.value && oldBooking.problem_description) {
+              const cleanDesc = oldBooking.problem_description.replace(/\[Quote Ref:.*?\]\s*/g, "").replace(/\[From Recurring Booking #\d+\]\s*/g, "").trim();
+              descInput.value = cleanDesc;
+            }
+
+            document.getElementById("alert-box").innerHTML = `
+              <div class="alert alert-info" style="display: flex; align-items: center; gap: 0.5rem;">
+                <span>🔁</span>
+                <div>
+                  <strong>Book Again (Repeat Service):</strong> Provider, service, and address have been pre-filled from booking #${repeatBookingId}. Please pick a new scheduled date and available time slot to confirm.
+                </div>
+              </div>
+            `;
+          }
+        } catch (e) {
+          console.warn("Could not prefill from previous booking:", e);
+        }
+      }
+
+      if (!providerId) {
+        try {
+          const providers = await api.get("/api/customers/providers");
+          if (providers.length > 0) {
+            providerId = providers[0].id;
+          } else {
+            document.getElementById("alert-box").innerHTML = "<div class='alert alert-danger'>No providers available.</div>";
+            return;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      try {
+        providerData = await api.get(`/api/customers/providers/${providerId}`);
+        document.getElementById("prov-name-display").textContent = providerData.name;
+        document.getElementById("prov-meta-display").textContent = `${providerData.experience_years} yrs exp • ${providerData.verification_status.toUpperCase()} • Radius ${providerData.service_radius_km} km`;
+        document.getElementById("prov-rating-display").textContent = `⭐ ${providerData.avg_rating > 0 ? providerData.avg_rating.toFixed(1) : "New"}`;
+
+        // Populate Services
+        const svcSelect = document.getElementById("service-select");
+        svcSelect.innerHTML = "<option value=''>-- Choose a Service --</option>" +
+          providerData.services.map(s => `
+            <option value="${s.id}" data-cat="${s.category_id}" data-min="${s.price_min}" data-max="${s.price_max}">
+              ${s.service_name} (₹${s.price_min} - ₹${s.price_max})
+            </option>
+          `).join("");
+
+        if (prefillServiceId) {
+          svcSelect.value = prefillServiceId;
+          onServiceChanged();
+        }
+
+        const days = [...new Set(providerData.availability_slots.map(s => s.day_of_week))].join(", ");
+        document.getElementById("availability-hint").textContent = `Available Days: ${days || "Not specified"}`;
+
+        userAddresses = await api.get("/api/customers/addresses");
+        renderAddresses(prefillAddressId);
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById("alert-box").innerHTML = `<div class='alert alert-danger'>${err.message}</div>`;
+      }
+    }
+
+    function renderAddresses(selectedAddressId = null) {
+      const container = document.getElementById("saved-addresses-container");
+      if (userAddresses.length === 0) {
+        container.innerHTML = "<p style='font-size: 0.85rem; color: var(--text-muted);'>No saved addresses found. Please enter your address below.</p>";
+        document.getElementById("new-address-fields").style.display = "block";
+        document.getElementById("new-address-toggle").style.display = "none";
+      } else {
+        container.innerHTML = userAddresses.map((a, idx) => {
+          const isChecked = selectedAddressId ? String(a.id) === String(selectedAddressId) : idx === 0;
+          return `
+            <label style="display: flex; align-items: flex-start; gap: 0.5rem; border: 1px solid var(--surface-border); padding: 0.65rem; border-radius: var(--radius-sm); margin-bottom: 0.4rem; cursor: pointer;">
+              <input type="radio" name="selected_address_id" value="${a.id}" ${isChecked ? "checked" : ""}>
+              <div>
+                <strong>${a.label}</strong>
+                <div style="font-size: 0.8rem; color: var(--secondary);">${a.full_address}</div>
+              </div>
+            </label>
+          `;
+        }).join("");
+      }
+    }
+
+    function toggleNewAddress() {
+      const fields = document.getElementById("new-address-fields");
+      const isVisible = fields.style.display === "block";
+      fields.style.display = isVisible ? "none" : "block";
+      if (!isVisible) {
+        const radios = document.querySelectorAll("input[name='selected_address_id']");
+        radios.forEach(r => r.checked = false);
+      }
+    }
+
+    function onServiceChanged() {
+      const svcSelect = document.getElementById("service-select");
+      const opt = svcSelect.selectedOptions[0];
+      if (opt && opt.value) {
+        const min = opt.getAttribute("data-min");
+        const max = opt.getAttribute("data-max");
+        document.getElementById("total-estimate-display").textContent = `₹${min} - ₹${max}`;
+        document.getElementById("price-estimate-box").textContent = `Estimated standard price: ₹${min} to ₹${max}`;
+      } else {
+        document.getElementById("total-estimate-display").textContent = "₹0 - ₹0";
+        document.getElementById("price-estimate-box").textContent = "";
+      }
+    }
+
+    function onDateChanged() {
+      const dateVal = document.getElementById("scheduled-date").value;
+      const timeSelect = document.getElementById("scheduled-time-select");
+      timeSelect.innerHTML = "";
+
+      if (!dateVal) {
+        timeSelect.innerHTML = "<option value=''>-- Select Date First --</option>";
+        return;
+      }
+
+      const dt = new Date(dateVal + "T00:00:00");
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const dayOfWeek = dayNames[dt.getDay()];
+
+      if (!providerData || !providerData.availability_slots) return;
+
+      const matchingSlots = providerData.availability_slots.filter(
+        s => s.day_of_week.toLowerCase() === dayOfWeek.toLowerCase()
+      );
+
+      if (matchingSlots.length === 0) {
+        timeSelect.innerHTML = `<option value="">Provider not available on ${dayOfWeek}s</option>`;
+        document.getElementById("availability-hint").innerHTML = `<span style="color: var(--danger);">Provider does not work on ${dayOfWeek}s. Please choose another date.</span>`;
+        return;
+      }
+
+      document.getElementById("availability-hint").innerHTML = `<span style="color: var(--success);">Provider available on ${dayOfWeek}s (${matchingSlots.map(s => s.start_time + '-' + s.end_time).join(', ')})</span>`;
+
+      timeSelect.innerHTML = "<option value=''>-- Select Time Slot --</option>";
+      matchingSlots.forEach(s => {
+        const startHour = parseInt(s.start_time.split(":")[0]);
+        const endHour = parseInt(s.end_time.split(":")[0]);
+        for (let h = startHour; h < endHour; h++) {
+          const timeStr = `${h.toString().padStart(2, '0')}:00`;
+          const opt = document.createElement("option");
+          opt.value = timeStr;
+          opt.textContent = `${timeStr} (window ${timeStr} - ${(h+1).toString().padStart(2, '0')}:00)`;
+          timeSelect.appendChild(opt);
+        }
+      });
+    }
+
+    document.getElementById("booking-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const alertBox = document.getElementById("alert-box");
+      const submitBtn = document.getElementById("submit-booking-btn");
+      alertBox.innerHTML = "";
+
+      const svcSelect = document.getElementById("service-select");
+      const selectedSvcOpt = svcSelect.selectedOptions[0];
+      if (!selectedSvcOpt || !selectedSvcOpt.value) {
+        alertBox.innerHTML = "<div class='alert alert-danger'>Please select a service.</div>";
+        return;
+      }
+
+      const service_id = parseInt(selectedSvcOpt.value);
+      const category_id = parseInt(selectedSvcOpt.getAttribute("data-cat"));
+      const isEmergency = document.getElementById("is-emergency-toggle").checked;
+      const recurringInterval = document.getElementById("recurring-select").value || null;
+      const problem_description = document.getElementById("problem-desc").value.trim();
+
+      // Address resolution
+      let address_id = null;
+      let new_full_address = null;
+      let new_address_label = null;
+
+      const selectedRadio = document.querySelector("input[name='selected_address_id']:checked");
+      if (selectedRadio) {
+        address_id = parseInt(selectedRadio.value);
+      } else {
+        new_full_address = document.getElementById("new-address-full").value.trim();
+        new_address_label = document.getElementById("new-address-label").value.trim() || "Home";
+        if (!new_full_address) {
+          alertBox.innerHTML = "<div class='alert alert-danger'>Please select a saved address or enter full address details.</div>";
+          return;
+        }
+      }
+
+      submitBtn.disabled = true;
+
+      if (isEmergency) {
+        submitBtn.textContent = "Broadcasting emergency to providers...";
+        try {
+          const emergencyPayload = {
+            category_id,
+            address_id,
+            new_full_address,
+            new_address_label,
+            problem_description: `[EMERGENCY] ${problem_description}`
+          };
+          const res = await api.post("/api/bookings/emergency", emergencyPayload);
+          alertBox.innerHTML = `<div class='alert alert-success'>Emergency request broadcasted to ${res.length} nearby verified providers! The first provider to accept will secure the job. Redirecting...</div>`;
+          setTimeout(() => {
+            window.location.href = "/my_bookings.html";
+          }, 1500);
+        } catch (err) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "🚨 Broadcast Emergency Request Immediately";
+          alertBox.innerHTML = `<div class='alert alert-danger'>${err.message || "Failed to broadcast emergency"}</div>`;
+        }
+        return;
+      }
+
+      // Standard / Recurring booking
+      const scheduled_date = document.getElementById("scheduled-date").value;
+      const scheduled_time = document.getElementById("scheduled-time-select").value;
+
+      if (!scheduled_date || !scheduled_time) {
+        submitBtn.disabled = false;
+        alertBox.innerHTML = "<div class='alert alert-danger'>Please select an available scheduled date and time slot.</div>";
+        return;
+      }
+
+      submitBtn.textContent = "Confirming Booking...";
+
+      try {
+        const payload = {
+          provider_id: parseInt(providerId),
+          category_id,
+          service_id,
+          address_id,
+          new_full_address,
+          new_address_label,
+          problem_description,
+          scheduled_date,
+          scheduled_time,
+          recurring_interval: recurringInterval
+        };
+
+        await api.post("/api/bookings", payload);
+        alertBox.innerHTML = "<div class='alert alert-success'>Booking created successfully! Redirecting to your bookings...</div>";
+        setTimeout(() => {
+          window.location.href = "/my_bookings.html";
+        }, 1200);
+
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Confirm & Send Booking Request";
+        alertBox.innerHTML = `<div class='alert alert-danger'>${err.message || "Failed to create booking"}</div>`;
+      }
+    });
+
+    initBookingPage();
+  </script>
+</body>
+</html>
