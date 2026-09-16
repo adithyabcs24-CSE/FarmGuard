@@ -290,6 +290,48 @@ def format_english_response(crop: str, problem: Dict[str, Any], query: str) -> D
     }
 
 
+def query_gemini_assistant(query: str, language: str, crop: str) -> Optional[Dict[str, Any]]:
+    from backend.config import GEMINI_API_KEY
+    if not GEMINI_API_KEY or GEMINI_API_KEY.startswith("your_") or len(GEMINI_API_KEY) < 10:
+        return None
+
+    try:
+        import httpx
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        system_instruction = (
+            f"You are Kisan Voice AI Advisor, an expert agronomy consultant for farmers in India. "
+            f"Respond directly and concisely in {language}. "
+            f"Provide: 1) What the issue is in {crop}, 2) Immediate field actions, 3) Certified organic remedies (e.g. neem oil, trichoderma), "
+            f"4) Standard chemical controls with safe dilution dosage. Keep the advice actionable, respectful, and safe."
+        )
+        payload = {
+            "contents": [{"parts": [{"text": f"Farmer query regarding {crop}: {query}"}]}],
+            "systemInstruction": {"parts": [{"text": system_instruction}]}
+        }
+        res = httpx.post(url, json=payload, timeout=6.0)
+        if res.status_code == 200:
+            data = res.json()
+            candidates = data.get("candidates", [])
+            if candidates:
+                text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
+                if text:
+                    audio_text = text.split("\n")[0][:280]
+                    return {
+                        "reply": text,
+                        "audio_text": audio_text,
+                        "suggested_actions": ["Prune and remove infected leaves", "Apply recommended neem oil or bio-fungicide"],
+                        "follow_ups": [
+                            f"{crop} में दवा का सही नाप क्या है?" if language == "Hindi" else
+                            f"{crop} ಬೆಳೆಗೆ ಸರಿಯಾದ ಪ್ರಮಾಣ ಎಷ್ಟು?" if language == "Kannada" else
+                            f"What is the exact dilution dosage for {crop}?",
+                            "How to prepare organic neem oil spray?"
+                        ]
+                    }
+    except Exception as e:
+        print(f"Gemini API request note: {e}")
+    return None
+
+
 @router.post("/chat", response_model=VoiceAssistantResponse)
 def voice_assistant_chat(
     req: VoiceAssistantRequest,
@@ -330,6 +372,11 @@ def voice_assistant_chat(
         else:
             res_data = format_english_response(crop, problem, raw_query)
             selected_lang = "English"
+
+    # Try Gemini API if GEMINI_API_KEY is configured
+    gemini_data = query_gemini_assistant(raw_query, selected_lang, crop)
+    if gemini_data:
+        res_data = gemini_data
 
     return VoiceAssistantResponse(
         reply=res_data["reply"],

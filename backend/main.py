@@ -1,4 +1,11 @@
+import sys
 from pathlib import Path
+
+# Ensure project root is in sys.path for serverless runtimes (like Vercel)
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

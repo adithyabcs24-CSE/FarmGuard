@@ -13,14 +13,48 @@ router = APIRouter(prefix="", tags=["advisory"])
 def get_weather_advisory(user: User = Depends(get_optional_user)):
     location = user.location if user and user.location else "Regional Agricultural Zone"
     
-    # Typical agro-climatic profile
+    temperature = 28.5
+    humidity = 82
+    condition = "Partly Cloudy with High Morning Humidity"
+
+    from backend.config import WEATHER_API_KEY
+    if WEATHER_API_KEY and not WEATHER_API_KEY.startswith("your_") and len(WEATHER_API_KEY) > 10:
+        try:
+            import httpx
+            city = location.split(",")[0].strip()
+            res = httpx.get(
+                "https://api.openweathermap.org/data/2.5/weather",
+                params={"q": city, "appid": WEATHER_API_KEY, "units": "metric"},
+                timeout=4.0
+            )
+            if res.status_code == 200:
+                wdata = res.json()
+                temperature = float(wdata.get("main", {}).get("temp", temperature))
+                humidity = int(wdata.get("main", {}).get("humidity", humidity))
+                cond_list = wdata.get("weather", [])
+                if cond_list:
+                    condition = cond_list[0].get("description", condition).title()
+        except Exception as e:
+            print(f"Weather API request note: {e}")
+
+    # Dynamically evaluate disease risk based on weather parameters
+    if humidity >= 80:
+        disease_risk = "High Fungal Risk"
+        risk_alert = f"Relative humidity is {humidity}% with warm conditions ({temperature}°C): heightened spore germination risk for Blight, Downy Mildew, and Blast."
+    elif humidity >= 65:
+        disease_risk = "Moderate Disease Risk"
+        risk_alert = f"Humidity is {humidity}% with {temperature}°C: favorable for sucking pests (aphids/whitefly) and early fungal development."
+    else:
+        disease_risk = "Low Disease Risk"
+        risk_alert = f"Dry conditions with humidity at {humidity}%: low fungal pressure, monitor for red spider mites in dry heat."
+
     return WeatherAdvisory(
         location=location,
-        temperature_c=28.5,
-        humidity_pct=82,
-        condition="Partly Cloudy with High Morning Humidity",
-        disease_risk_level="High Fungal Risk",
-        risk_alert="Relative humidity exceeds 80% with warm mornings: heightened spore germination risk for Tomato Early/Late Blight and Rice Blast.",
+        temperature_c=temperature,
+        humidity_pct=humidity,
+        condition=condition,
+        disease_risk_level=disease_risk,
+        risk_alert=risk_alert,
         recommended_actions=[
             "Conduct early morning field scout on lower canopy leaves for water-soaked spots",
             "Ensure field drainage channels are clear and avoid overhead sprinkler watering",

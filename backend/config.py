@@ -37,10 +37,11 @@ ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(60 * 24 * 7)))  # 7 days
 
 # Database & External Services
-if IS_VERCEL and not os.getenv("DATABASE_URL"):
+if IS_VERCEL and (not os.getenv("DATABASE_URL") or "sqlite" in os.getenv("DATABASE_URL", "")):
     DATABASE_URL = "sqlite:////tmp/farmguard.db"
 else:
     DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/farmguard.db")
+
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY", "")
