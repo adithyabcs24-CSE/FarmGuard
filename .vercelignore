@@ -1,0 +1,11 @@
+tests/
+.pytest_cache/
+pytest.ini
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.vscode/
+.git/
+*.db
+*.sqlite3

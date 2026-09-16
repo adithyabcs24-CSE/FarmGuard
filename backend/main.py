@@ -9,13 +9,28 @@ import backend.models  # Register all models with Base
 from backend.routers import auth, crops, scans, diseases, advisory, contact, assistant
 from backend.config import STATIC_DIR, UPLOAD_DIR
 
+from contextlib import asynccontextmanager
+
 # Create database tables
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Database initialization warning: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        from backend.seed import seed_database
+        seed_database()
+    except Exception as e:
+        print(f"Startup seeding warning: {e}")
+    yield
 
 app = FastAPI(
     title="FarmGuard AI API",
     version="1.0.0",
-    description="Early Crop Problem & Pest Detection Platform API"
+    description="Early Crop Problem & Pest Detection Platform API",
+    lifespan=lifespan
 )
 
 # CORS configuration
@@ -47,8 +62,15 @@ def health_check():
 
 
 # Ensure static subdirectories exist
-STATIC_DIR.mkdir(parents=True, exist_ok=True)
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    STATIC_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
+
+try:
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 
 # Explicit route handlers for clean URLs
 @app.get("/dashboard")
@@ -100,6 +122,9 @@ def get_terms_page():
 
 
 # Mount static assets
+if UPLOAD_DIR.exists() and UPLOAD_DIR != (STATIC_DIR / "uploads"):
+    app.mount("/static/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="static_uploads")
+
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static_assets")
 app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="assets")
 

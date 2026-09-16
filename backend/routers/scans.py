@@ -44,9 +44,13 @@ def analyze_scan(
             image_bytes = base64.b64decode(b64data)
             filename = f"scan_{uuid.uuid4().hex[:12]}.jpg"
             filepath = UPLOAD_DIR / filename
-            with open(filepath, "wb") as f:
-                f.write(image_bytes)
-            image_url = f"/static/uploads/{filename}"
+            try:
+                with open(filepath, "wb") as f:
+                    f.write(image_bytes)
+                image_url = f"/static/uploads/{filename}"
+            except Exception as e:
+                print("Could not save image to disk, falling back to data URL:", e)
+                image_url = req.image_base64
         except Exception as e:
             print("Error decoding base64 image:", e)
 
