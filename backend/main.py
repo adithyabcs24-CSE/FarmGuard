@@ -80,6 +80,23 @@ except Exception:
     pass
 
 # Explicit route handlers for clean URLs
+@app.get("/", include_in_schema=False)
+def get_home_page():
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return RedirectResponse(url="/index.html")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def get_favicon():
+    fav = STATIC_DIR / "favicon.ico"
+    if fav.exists():
+        return FileResponse(fav)
+    from fastapi.responses import Response
+    return Response(status_code=204)
+
+
 @app.get("/dashboard")
 def get_dashboard_page():
     dashboard_file = STATIC_DIR / "dashboard.html"

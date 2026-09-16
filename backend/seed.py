@@ -8,8 +8,16 @@ from backend.ai_engine import AGRONOMY_KNOWLEDGE_BASE
 
 
 def seed_database():
-    Base.metadata.create_all(bind=engine)
-    db: Session = SessionLocal()
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Seed create_all note: {e}")
+
+    try:
+        db: Session = SessionLocal()
+    except Exception as e:
+        print(f"SessionLocal error during seed: {e}")
+        return
 
     try:
         # Check if already seeded

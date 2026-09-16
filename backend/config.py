@@ -11,7 +11,28 @@ if ENV_FILE.exists():
 else:
     load_dotenv()
 
-IS_VERCEL = bool(os.getenv("VERCEL"))
+def _is_serverless_or_readonly() -> bool:
+    # Check serverless environment indicators
+    serverless_keys = (
+        "VERCEL",
+        "VERCEL_ENV",
+        "VERCEL_URL",
+        "VERCEL_REGION",
+        "AWS_LAMBDA_FUNCTION_NAME",
+        "LAMBDA_TASK_ROOT"
+    )
+    if any(os.getenv(k) for k in serverless_keys):
+        return True
+    # Check if project root is writable (serverless runtimes are read-only)
+    try:
+        test_file = BASE_DIR / ".write_test"
+        test_file.touch()
+        test_file.unlink()
+        return False
+    except Exception:
+        return True
+
+IS_VERCEL = _is_serverless_or_readonly()
 
 STATIC_DIR = BASE_DIR / "static"
 if IS_VERCEL:
