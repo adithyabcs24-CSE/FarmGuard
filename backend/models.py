@@ -4,6 +4,8 @@ from sqlalchemy.orm import relationship
 from backend.database import Base
 
 
+# ── Core models used by the 7 active API routers ──────────────────────────────
+
 class User(Base):
     __tablename__ = "users"
 
@@ -28,12 +30,12 @@ class Crop(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    name = Column(String(100), nullable=False)  # Tomato, Cotton, Rice, etc.
+    name = Column(String(100), nullable=False)
     variety = Column(String(100), default="")
     area_acres = Column(Float, default=1.0)
     planting_date = Column(String(50), default="")
     location = Column(String(100), default="")
-    health_status = Column(String(50), default="Healthy")  # Healthy, Monitoring, Attention Required
+    health_status = Column(String(50), default="Healthy")
     notes = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -51,15 +53,15 @@ class Scan(Base):
     image_url = Column(String(500), default="/assets/hero-crop.jpg")
     problem_name = Column(String(150), nullable=False)
     scientific_name = Column(String(150), default="")
-    problem_type = Column(String(50), default="Fungal")  # Fungal, Bacterial, Viral, Pest, Nutrient, Healthy
-    severity = Column(String(50), default="Medium")  # Healthy, Low, Medium, High, Critical
+    problem_type = Column(String(50), default="Fungal")
+    severity = Column(String(50), default="Medium")
     confidence_pct = Column(Integer, default=85)
     symptoms_json = Column(Text, default="[]")
     immediate_actions_json = Column(Text, default="[]")
     organic_remedies_json = Column(Text, default="[]")
     chemical_controls_json = Column(Text, default="[]")
     prevention_tips_json = Column(Text, default="[]")
-    status = Column(String(50), default="Monitoring")  # Monitoring, Improving, Resolved
+    status = Column(String(50), default="Monitoring")
     notes_json = Column(Text, default="[]")
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -96,11 +98,11 @@ class ContactMessage(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
-# ── Extended models used by provider/booking/admin routers ─────────────────────
+# ── Stub models – columns only, NO relationships, to prevent SQLAlchemy
+#    AmbiguousForeignKeysError / mapper config failures on Vercel cold starts ───
 
 class ServiceCategory(Base):
     __tablename__ = "service_categories"
-
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(120), nullable=False, unique=True)
     description = Column(Text, default="")
@@ -110,7 +112,6 @@ class ServiceCategory(Base):
 
 class ProviderProfile(Base):
     __tablename__ = "provider_profiles"
-
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
     bio = Column(Text, default="")
@@ -125,13 +126,9 @@ class ProviderProfile(Base):
     longitude = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User")
-    services = relationship("ProviderService", back_populates="provider", cascade="all, delete-orphan")
-
 
 class ProviderService(Base):
     __tablename__ = "provider_services"
-
     id = Column(Integer, primary_key=True, index=True)
     provider_id = Column(Integer, ForeignKey("provider_profiles.id"), nullable=False, index=True)
     category_id = Column(Integer, ForeignKey("service_categories.id"), nullable=True)
@@ -143,26 +140,19 @@ class ProviderService(Base):
     is_active = Column(String(10), default="true")
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    provider = relationship("ProviderProfile", back_populates="services")
-    category = relationship("ServiceCategory")
-
 
 class AvailabilitySlot(Base):
     __tablename__ = "availability_slots"
-
     id = Column(Integer, primary_key=True, index=True)
     provider_id = Column(Integer, ForeignKey("provider_profiles.id"), nullable=False, index=True)
-    day_of_week = Column(String(20), nullable=False)  # Monday, Tuesday...
+    day_of_week = Column(String(20), nullable=False)
     start_time = Column(String(10), default="09:00")
     end_time = Column(String(10), default="17:00")
     is_available = Column(String(10), default="true")
 
-    provider = relationship("ProviderProfile")
-
 
 class Address(Base):
     __tablename__ = "addresses"
-
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     label = Column(String(80), default="Home")
@@ -175,12 +165,9 @@ class Address(Base):
     longitude = Column(Float, default=0.0)
     is_default = Column(String(10), default="false")
 
-    user = relationship("User")
-
 
 class Booking(Base):
     __tablename__ = "bookings"
-
     id = Column(Integer, primary_key=True, index=True)
     booking_ref = Column(String(50), unique=True, index=True)
     customer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
@@ -196,15 +183,9 @@ class Booking(Base):
     total_amount = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    customer = relationship("User", foreign_keys=[customer_id])
-    provider = relationship("ProviderProfile", foreign_keys=[provider_id])
-    service = relationship("ProviderService", foreign_keys=[service_id])
-    address = relationship("Address", foreign_keys=[address_id])
-
 
 class Payment(Base):
     __tablename__ = "payments"
-
     id = Column(Integer, primary_key=True, index=True)
     booking_id = Column(Integer, ForeignKey("bookings.id"), nullable=False, index=True)
     amount = Column(Float, default=0.0)
@@ -213,12 +194,9 @@ class Payment(Base):
     transaction_id = Column(String(200), default="")
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    booking = relationship("Booking")
-
 
 class Invoice(Base):
     __tablename__ = "invoices"
-
     id = Column(Integer, primary_key=True, index=True)
     booking_id = Column(Integer, ForeignKey("bookings.id"), nullable=False, index=True)
     invoice_number = Column(String(100), unique=True, index=True)
@@ -228,12 +206,9 @@ class Invoice(Base):
     due_date = Column(String(50), default="")
     notes = Column(Text, default="")
 
-    booking = relationship("Booking")
-
 
 class Review(Base):
     __tablename__ = "reviews"
-
     id = Column(Integer, primary_key=True, index=True)
     booking_id = Column(Integer, ForeignKey("bookings.id"), nullable=False, index=True)
     reviewer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
@@ -242,44 +217,31 @@ class Review(Base):
     comment = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    booking = relationship("Booking")
-    reviewer = relationship("User", foreign_keys=[reviewer_id])
-    provider = relationship("ProviderProfile", foreign_keys=[provider_id])
-
 
 class Complaint(Base):
     __tablename__ = "complaints"
-
     id = Column(Integer, primary_key=True, index=True)
     booking_id = Column(Integer, ForeignKey("bookings.id"), nullable=False, index=True)
     filed_by_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(200), nullable=False)
     description = Column(Text, default="")
-    status = Column(String(50), default="Open")  # Open, Investigating, Resolved, Dismissed
+    status = Column(String(50), default="Open")
     resolution = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     resolved_at = Column(DateTime, nullable=True)
 
-    booking = relationship("Booking")
-    filed_by = relationship("User", foreign_keys=[filed_by_id])
-
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
-
     id = Column(Integer, primary_key=True, index=True)
     booking_id = Column(Integer, ForeignKey("bookings.id"), nullable=False, index=True)
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     message = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    booking = relationship("Booking")
-    sender = relationship("User", foreign_keys=[sender_id])
-
 
 class AdditionalCharge(Base):
     __tablename__ = "additional_charges"
-
     id = Column(Integer, primary_key=True, index=True)
     booking_id = Column(Integer, ForeignKey("bookings.id"), nullable=False, index=True)
     label = Column(String(200), nullable=False)
@@ -287,17 +249,11 @@ class AdditionalCharge(Base):
     status = Column(String(50), default="Pending")
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    booking = relationship("Booking")
-
 
 class Notification(Base):
     __tablename__ = "notifications"
-
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     message = Column(Text, nullable=False)
     is_read = Column(String(10), default="false")
     created_at = Column(DateTime, default=datetime.utcnow)
-
-    user = relationship("User")
-

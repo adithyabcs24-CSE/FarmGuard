@@ -145,12 +145,37 @@ def get_terms_page():
     return RedirectResponse(url="/terms.html")
 
 
-# Mount static assets
-if UPLOAD_DIR.exists() and UPLOAD_DIR != (STATIC_DIR / "uploads"):
-    app.mount("/static/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="static_uploads")
+# Mount static assets – ALL wrapped in try/except so a missing directory
+# on the Vercel serverless runtime never crashes the whole function.
+try:
+    if UPLOAD_DIR.exists() and UPLOAD_DIR != (STATIC_DIR / "uploads"):
+        app.mount("/static/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="static_uploads")
+except Exception as e:
+    print(f"[startup] upload dir mount skipped: {e}")
 
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static_assets")
-app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="assets")
+try:
+    if STATIC_DIR.exists():
+        app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static_assets")
+    else:
+        print(f"[startup] /static mount skipped – {STATIC_DIR} not found")
+except Exception as e:
+    print(f"[startup] /static mount error: {e}")
 
-# Mount root directory for static serving
-app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static_root")
+try:
+    _assets = STATIC_DIR / "assets"
+    if _assets.exists():
+        app.mount("/assets", StaticFiles(directory=str(_assets)), name="assets")
+    else:
+        print(f"[startup] /assets mount skipped – {_assets} not found")
+except Exception as e:
+    print(f"[startup] /assets mount error: {e}")
+
+# Root catch-all must be LAST – only add if the static dir exists
+try:
+    if STATIC_DIR.exists():
+        app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static_root")
+    else:
+        print(f"[startup] root static mount skipped – {STATIC_DIR} not found")
+except Exception as e:
+    print(f"[startup] root static mount error: {e}")
+
